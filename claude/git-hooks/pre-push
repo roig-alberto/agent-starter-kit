@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+"""Global pre-push hook (core.hooksPath): refuse a push that would overwrite commits on the
+remote (a force push), for every agent and the user. Override: ALLOW_FORCE_PUSH=1 git push ...
+A remote commit this clone has never fetched also counts as overwritten (fail closed).
+The repo's own .git/hooks/pre-push runs first. Samples: ~/.claude/scripts/guards-test.sh.
+"""
+import os
+import subprocess
+import sys
+
+ZERO = "0" * 40
+
+refs = sys.stdin.read()
+common = subprocess.run(["git", "rev-parse", "--git-common-dir"], capture_output=True, text=True).stdout.strip()
+own = os.path.join(common, "hooks", "pre-push")
+if common and os.access(own, os.X_OK):
+    r = subprocess.run([own, *sys.argv[1:]], input=refs, text=True)
+    if r.returncode != 0:
+        sys.exit(r.returncode)
+
+if os.environ.get("ALLOW_FORCE_PUSH") == "1":
+    sys.exit(0)
+for line in refs.splitlines():
+    parts = line.split()
+    if len(parts) != 4:
+        continue
+    local_ref, local_sha, remote_ref, remote_sha = parts
+    if local_sha.strip("0") == "" or remote_sha.strip("0") == "":
+        continue  # a deletion or a new branch
+    if subprocess.run(["git", "merge-base", "--is-ancestor", remote_sha, local_sha],
+                      capture_output=True).returncode != 0:
+        print(f"push blocked by ~/.claude/git-hooks/pre-push: {local_ref} -> {remote_ref} would overwrite "
+              f"commits on {sys.argv[1]} (a force push). Pull and merge first, or, if the user asked for it, "
+              f"rerun with ALLOW_FORCE_PUSH=1.", file=sys.stderr)
+        sys.exit(1)

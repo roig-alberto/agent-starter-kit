@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-16 (phase 5)",
+  "fixtures": 62,
+  "word_rank": {
+    "top1": 42,
+    "top3": 53,
+    "scored": 59,
+    "top1_pct": 71.1
+  },
+  "real_runs": {
+    "model": "sonnet",
+    "turn_cap": 2,
+    "passed": 59,
+    "ran": 62,
+    "pass_pct": 95,
+    "original_39_passed": 33,
+    "cost_usd_api_equivalent": 7.42,
+    "run_suffix": "nocap"
+  },
+  "note": "Raise these numbers when a full sweep beats them. Lower word_rank only with a real run proving the lost fixture still routes correctly, recorded in word_rank_changes.",
+  "word_rank_changes": [
+    {
+      "date": "2026-10-16",
+      "from_top1": 23,
+      "to_top1": 22,
+      "cause": "debugging description gained speed triggers ('this page is slow'), so box_slow ranks debugging above fleet-ops by word overlap",
+      "real_run_proof": "box_slow-2.jsonl loaded fleet-ops (Sonnet, 2026-10-16)"
+    },
+    {
+      "date": "2026-10-16",
+      "from_top1": 44,
+      "to_top1": 42,
+      "cause": "capacitor-apk-wrap deleted with its fixture (a pass), and the frontend-interaction-patterns shape pass shifted word overlap on its toast and select fixtures",
+      "real_run_proof": "run-skill.sh frontend-interaction-patterns: select_finicky, dock_drag, toast_modal, toast_position loaded frontend-interaction-patterns, toast_middle one-shot, swipe_janky animate (all accepted), $0.76"
+    }
+  ],
+  "router_sha": "57814fb43d5066ff",
+  "history": [
+    {
+      "run": "1",
+      "router": "33 rows",
+      "original_39": "32/39"
+    },
+    {
+      "run": "p5",
+      "router": "9 rows",
+      "original_39": "29/39"
+    },
+    {
+      "run": "r35",
+      "router": "33 rows restored",
+      "original_39": "28/39"
+    },
+    {
+      "run": "fin",
+      "router": "9 rows + one-shot precedence note",
+      "original_39": "33/39"
+    },
+    {
+      "run": "nocap",
+      "router": "9 rows, capacitor-apk-wrap removed",
+      "all": "59/62"
+    },
+    {
+      "run": "ctx/f/g/h",
+      "what": "4 context-dependent fixtures given their earlier message: all 4 pass; cors 2/3 (kept); resume_coach 1/3 -> 3/3 and select_finicky 0/3 -> 3/3 after one trigger phrase each in claude-spawner and frontend-interaction-patterns"
+    }
+  ],
+  "coverage_note": "2026-10-16: 20 fixtures added so every skill has at least one test where it is the only accepted answer; the 6 remaining fails are the 4 context-dependent fixtures (plain_1, plain_2, scaffold, design_canvas) plus select_finicky, cors and resume_coach minus one that passed"
+}

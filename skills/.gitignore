@@ -1,0 +1,7 @@
+.DS_Store
+# router-eval run transcripts (large, regenerable)
+agent-tool-bench/references/router-eval/*.jsonl
+agent-tool-bench/references/router-eval/*.gitcheck
+
+# review-eval run outputs quote private repo code: local only
+agent-tool-bench/references/review-eval/out/

@@ -1,0 +1,58 @@
+# id	prompt	expected (alternatives with |, "none" = no skill should load)	source
+anim_slow_menu	can you slow down the opening the menu a little bit	animate	real
+anim_header	Review the header button animation it is not the same as linear you might want to have more frames and slowdown	animate	real
+anim_page_load	the workout and the coach page i think does not have this animations when i load the page	animate	real
+select_finicky	the select option is a little bit slow and finicky when i am pressing and going through different line it goes to the top but the hightliher option is great and fast	frontend-interaction-patterns|animate	real
+dock_issue	as you can see there are some issue with the dock in aro	ios-pwa-dock	real
+dock_drag	but i can't change the elements in the dock so i can't move the usage to the menu aja something from the menu to the slots with dragging	frontend-interaction-patterns|one-shot	real
+pwa_reinstall	also write down in the skill that i need to reinstall the pwa when you have made this change , so for example right now i did need to reinstall the pwa	knowledge-authoring|pwa-patterns	real
+food_edit	i do not have a screen to edit the foods that i have inputed, for example i have created a food called 'a homemade dish ' and i want to edit it	one-shot	real
+archive_routines	to test this i want to add another feataure to be able to 'archive' routines	one-shot	real
+pdf_error	i get an error when importing the pdf i get this error , cant find the variable iterator  can you check the work of the other agent	debugging	real
+next_button	the button next is not working but the 10s is working	debugging|one-shot	real
+cors	i get this error rejected by cors-check (see fileserver log) URL:	debugging	real
+training_bug	in the aro  training is not working properly the sessions , i can change when i train but it seems it is fixed in that screen	debugging|one-shot	real
+plan_agent	make a plan to build this so another agent can build it	plan	real
+scaffold	Earlier we agreed the idea: a self-hosted reader app where I highlight PDFs and review the highlights later, and you proposed the stack and the screens. My reply: Okay do the scaffold and the plan so another agent can build this and also start the project so the other agents just have to code include the wireframes with screenshots	new-app|plan	real+context
+reader_app	i want to create an app where i see the things i highlight from mainly the pdf that i read something like readerwise and the things that i highlight i remember them	new-app	real
+firstmate_worth	read the firstmate project throughly and tell me if it is worth it and better than what we have in paseo, maybe we can have a mix or something ( i need a mobile phone app )	agent-tool-bench|research-decision	real
+orca	i want to install orca https://github.com/stablyai/orca in this and use it with remote control from the phone and also in another computer but to work in this one , can i do this ?	agent-tool-bench|research-decision	real
+tiering_q	what is the skill model-tiering ?	model-tiering	real
+wireframes_check	Check the deployed against the wireframes	verify-ui-live	real
+design_canvas	Earlier you asked whether every app should share one design system or get its own look, and whether the designs should live in the repo or on the claude.ai canvas. My reply: i want every app to be different at least for now , but i mean to have the infinite canvas and the format .dc.html which i get with the claude artifact	claude-design-craft|frontend-design	real+context
+plain_1	Earlier you wrote: "The monthly skills-audit timer is the right fit here, not an Agent Factory loop: loops are restricted to OpenCode and worktree-only access (RULE-6/RULE-11), while this job needs ~/.claude chat history." My reply: i do not understand this	plain	real+context
+plain_2	Earlier you wrote: "Gap 2: no file says how you would know an app is worth its upkeep, so I propose a Worth it when: line in each app's CLAUDE.md." My reply: what is the purpose of worth it when ?	plain	real+context
+swipe_janky	the swipe on the triage deck feels janky on my phone	frontend-interaction-patterns|animate	2026-09
+app_down	loop is down, the night plan never ran last night	debugging	2026-09
+schema	I want to add a column to the items table for a snooze date	backend-patterns|one-shot	2026-09
+sheet_motion	the bottom sheet opens too abruptly, make it feel nicer	animate	2026-09
+desktop	port the palancas screen to a proper desktop layout	responsive-desktop-port	2026-09
+bump	bump next to the latest version in loop	portability	2026-09
+toast_modal	the toast never shows, it sits behind the modal	frontend-interaction-patterns|animate|debugging	2026-09
+handoff_save	save where we are, i'm going to clear	handoff	synthetic
+review_diff	review my changes before i merge them	review	synthetic
+neg_recommend	go with you recommendation	none	real
+neg_skills_list	what are the skills that we have ? list every one	none	real
+neg_mood	thanks, that was a long day	none	synthetic
+retro_session	lets do a retro of this session, what should we change so it goes faster next time	retro	synthetic
+retro_harvest	the harvest is overflowing with things that are not important, clean it up	retro	synthetic
+proto_variants	show me a few versions of the workout summary card, i cant picture it	prototype	synthetic
+proto_logic	before building it, let me click through how the run recovery flow behaves when a login fails and then i reconnect	prototype	synthetic
+test_add	add tests for the macros calculator so it does not break again	testing	synthetic
+test_is_tested	is this tested ? i want to know if the streak logic has tests	testing	synthetic
+arch_adr	why did we choose sqlite instead of postgres in agent factory ? write it down as an adr	architecture	synthetic
+verify_skill_new	shelf has no verify skill yet, make one so agents can prove the reader works	create-verification-skill	synthetic
+gh_repo	create a private github repo for this and push it	gh-git-ops	synthetic
+grill_coach	grill me on the coach feature before we plan it	grill-me	synthetic
+audit_skills	audit the skills, are they still accurate after the host changes ?	skills-audit	synthetic
+toast_middle	the toaster is in the middle of the screen also i would like to be able in the second screenshot to edit delete … also i would like to see here the notes	frontend-interaction-patterns|one-shot	real
+push_missing	push notifications don't arrive on my iphone for caudal	pwa-patterns	synthetic
+lib_compare	should i use drizzle or prisma for the new app, compare them	research-decision	synthetic
+agnostic_skills	in the skills it mentions claude and codex but should be agent agnostic	knowledge-authoring	real
+ugly_app	the app looks ugly and generic, give it a real visual direction	frontend-design	synthetic
+csv_endpoint	add an endpoint to export the meal plan as csv	backend-patterns|one-shot	synthetic
+graft_worth	is the graft tool worth keeping, does it actually save tokens ?	agent-tool-bench	synthetic
+html_wireframes	make wireframes of the settings screen as html artboards in the repo	claude-design-craft	synthetic
+toast_position	the toast shows in the middle of the screen, it should sit at the bottom above the dock	frontend-interaction-patterns	synthetic
+pg_array_error	the query typechecks but at runtime it explodes with malformed array literal	backend-patterns	synthetic
+handoff_pickup	read `~/.claude/HANDOFF.md` and continue	handoff	real

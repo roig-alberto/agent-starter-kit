@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+"""Global commit-msg hook (core.hooksPath), so it runs for every agent and the user.
+
+Blocks: an agent trailer, a long dash in the message or the added lines, a secret in the
+staged files (gitleaks; also when gitleaks is missing or errors), and the floor guard (a
+commit that weakens a check to get to green). A real floor change passes with a line
+`Floor-change: <reason>` in the message. During a merge only the secret scan runs.
+The repo's own .git/hooks/commit-msg runs first. Samples: ~/.claude/scripts/guards-test.sh.
+"""
+import os
+import re
+import subprocess
+import sys
+
+DASHES = re.compile("[\u2013\u2014]")
+TRAILER = re.compile(r"^(co-authored-by|claude-session):|noreply@anthropic\.com|generated with \[?claude code",
+                     re.I | re.M)
+NO_DASH_CHECK = re.compile(r"(^|/)(CHANGELOG\.md|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|[^/]*\.lock)$")
+CODE = re.compile(r"\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|py|go|java|kt|rs|swift|sh|vue|svelte)$")
+TEST = re.compile(r"(\.(test|spec)\.|_test\.|(^|/)test_|(^|/)tests?/|(^|/)__tests__/|(^|/)e2e/)")
+SUPPRESS = re.compile(r"@ts-ignore|@ts-nocheck|eslint-disable|biome-ignore|#\s*noqa|#\s*type:\s*ignore|"
+                      r"istanbul ignore|c8 ignore|nosemgrep|gitleaks:allow|@SuppressWarnings|nolint")
+SKIP = re.compile(r"\.(skip|only|todo)\b|\b[xf](it|describe|test)\(|@pytest\.mark\.(skip|xfail)|"
+                  r"\bt\.Skip\(|@Disabled\b")
+ASSERT = re.compile(r"\b(expect|assert\w*|should)\b")
+
+
+def git(*args):
+    return subprocess.run(["git", *args], capture_output=True, text=True)
+
+
+def staged_diff():
+    """Added and removed lines per file, plus the deleted files, from the staged diff."""
+    out = git("diff", "--cached", "--unified=0", "--no-color", "--no-ext-diff")
+    if out.returncode != 0:
+        sys.exit(f"commit-msg: could not read the staged diff: {out.stderr.strip()}")
+    added, removed, deleted = [], [], []
+    old = new = ""
+    in_header = False
+    for line in out.stdout.splitlines():
+        if line.startswith("diff "):
+            in_header = True
+        elif line.startswith("@@"):
+            in_header = False
+        elif in_header:
+            if line.startswith("--- "):
+                old = line[4:].removeprefix("a/")
+            elif line.startswith("+++ "):
+                new = line[4:].removeprefix("b/")
+                if new == "/dev/null":
+                    new = old
+                    deleted.append(old)
+        elif line.startswith("+"):
+            added.append((new, line[1:]))
+        elif line.startswith("-"):
+            removed.append((new, line[1:]))
+    return added, removed, deleted
+
+
+def secret_scan():
+    try:
+        r = subprocess.run(["gitleaks", "git", "--pre-commit", "--staged", "--redact", "--no-banner",
+                            "--exit-code", "3", "--log-level", "warn", "-v"], capture_output=True, text=True)
+    except FileNotFoundError:
+        return ["gitleaks is not installed, so the secret scan cannot run (install it, see ~/.claude/INSTALL.md)."]
+    if r.returncode == 0:
+        return []
+    if r.returncode == 3:
+        return ["gitleaks found a secret in the staged files (value redacted):\n" + r.stdout.strip()]
+    return [f"gitleaks failed (exit {r.returncode}), so nothing was scanned:\n{(r.stderr or r.stdout).strip()}"]
+
+
+def floor(added, removed, deleted):
+    found = []
+    for f, text in added:
+        if not CODE.search(f):
+            continue
+        if SUPPRESS.search(text):
+            found.append(f"silenced checker in {f}: {text.strip()[:100]}")
+        if TEST.search(f) and SKIP.search(text):
+            found.append(f"test made easier in {f}: {text.strip()[:100]}")
+    for f in deleted:
+        if CODE.search(f) and TEST.search(f):
+            found.append(f"test file deleted: {f}")
+    for f in {f for f, _ in removed if CODE.search(f) and TEST.search(f) and f not in deleted}:
+        lost = sum(bool(ASSERT.search(t)) for g, t in removed if g == f) \
+            - sum(bool(ASSERT.search(t)) for g, t in added if g == f)
+        if lost > 0:
+            found.append(f"{lost} assertion(s) removed from {f}")
+    return found
+
+
+def main():
+    common = git("rev-parse", "--git-common-dir").stdout.strip()
+    own = os.path.join(common, "hooks", "commit-msg")
+    if common and os.access(own, os.X_OK):
+        r = subprocess.run([own, *sys.argv[1:]])
+        if r.returncode != 0:
+            return r.returncode
+
+    msg = "\n".join(l for l in open(sys.argv[1], encoding="utf-8", errors="replace").read().splitlines()
+                    if not l.startswith("#"))
+    problems = []
+    if TRAILER.search(msg):
+        problems.append("the message carries an agent trailer (Co-Authored-By, Claude-Session, Generated with...). "
+                        "The user's rule: never add one.")
+    if DASHES.search(msg):
+        problems.append("the message contains a long dash. Use a hyphen or a new sentence.")
+    problems += secret_scan()
+
+    git_dir = git("rev-parse", "--git-dir").stdout.strip()
+    if not os.path.exists(os.path.join(git_dir, "MERGE_HEAD")):
+        added, removed, deleted = staged_diff()
+        for f, text in added:
+            if DASHES.search(text) and not NO_DASH_CHECK.search(f):
+                problems.append(f"long dash added in {f}: {text.strip()[:100]}")
+        weakened = floor(added, removed, deleted)
+        if weakened and not re.search(r"^Floor-change:\s*\S", msg, re.M | re.I):
+            problems.append("floor guard: this commit weakens a check to get to green:\n  " + "\n  ".join(weakened)
+                            + "\n  Fix the code instead. If the spec really changed, add a line "
+                              "'Floor-change: <which spec line and why>' to the message.")
+    if problems:
+        print("commit blocked by ~/.claude/git-hooks/commit-msg:\n- " + "\n- ".join(problems), file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

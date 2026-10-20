@@ -1,0 +1,18 @@
+{
+ "labeler": "Opus main thread, 2026-10-20, by reading each review's findings against the case",
+ "rule": "caught = a finding names the same function or code path and the same mechanism",
+ "runs": {
+  "sonnet-medium/finance-drilldown-effect-dep-2": "caught",
+  "sonnet-medium/finance-lockguard-overlay-login-1": "caught",
+  "sonnet-medium/finance-outlier-dismiss-client-only-2": "caught",
+  "sonnet-medium/mycloset-style-tipo-flat-1": "caught",
+  "sonnet-medium/finance-outlier-dismiss-client-only-1": "caught",
+  "sonnet-medium/mycloset-hooks-order-2": "missed",
+  "sonnet-medium/recall-sw-page-cache-unversioned-1": "missed",
+  "sonnet-medium/recall-cron-missed-tolerance-1": "missed",
+  "p1/finance-transfer-leg-find-1": "caught"
+ },
+ "borderline": {
+  "sonnet-medium/recall-cron-missed-tolerance-1": "names the missed 08:00 tick (worker down, no catch-up) but not node-cron dropping a late tick: labeled missed"
+ }
+}

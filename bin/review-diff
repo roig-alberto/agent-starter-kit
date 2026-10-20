@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# review-diff - cheap, single-turn Claude review of a working-tree diff.
+#
+# Why: letting a Claude agent explore a repo to review a change cost 1.41M context
+# tokens over 24 turns (Paseo reviewer, 2026-09-15). Feeding it the diff in ONE lean
+# call measured 17.7k on the same change. No tools, no settings, no MCP, one turn.
+#
+# Usage:
+#   review-diff                          # working-tree diff (tracked + untracked) of $PWD
+#   review-diff --base master            # diff against a base ref instead
+#   review-diff --model sonnet --effort high --focus "money paths"   # effort: low|medium|high (never above high)
+#   review-diff --repo /path/to/worktree
+#   review-diff --context docs/plans/X.md --context CLAUDE.md   # what was asked + repo rules
+# Env: REVIEW_MODEL (default sonnet), REVIEW_EFFORT (default medium), REVIEW_MAX_CHARS (default 400000),
+#      REVIEW_EXTRA (text added to the instructions: how the reviewer eval tries a prompt change before it ships).
+# The repo's REVIEW.md files (root, plus one in any folder above a changed file) are added as review instructions,
+# read from the committed copy (--base, else HEAD), never from the change under review: a change cannot soften its
+# own review (Claude Code Code Review does the same).
+set -euo pipefail
+
+model=${REVIEW_MODEL:-sonnet}
+max_chars=${REVIEW_MAX_CHARS:-400000}
+repo=$PWD base="" focus="" effort=${REVIEW_EFFORT:-medium} context=()  # medium: measured 2026-10-20, high and Opus gained nothing
+
+while [ $# -gt 0 ]; do
+  case $1 in
+    --model) model=$2; shift 2 ;;
+    --effort) case $2 in low|medium|high) effort=$2 ;; *) echo "review-diff: --effort is low, medium or high" >&2; exit 2 ;; esac; shift 2 ;;
+    --base) base=$2; shift 2 ;;
+    --repo) repo=$2; shift 2 ;;
+    --focus) focus=$2; shift 2 ;;
+    --context) context+=("$(realpath "$2")"); shift 2 ;;
+    -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
+    *) echo "review-diff: unknown option $1" >&2; exit 2 ;;
+  esac
+done
+
+cd "$repo"
+git rev-parse --git-dir >/dev/null 2>&1 || { echo "review-diff: $repo is not a git repo" >&2; exit 2; }
+
+collect() {
+  if [ -n "$base" ]; then git diff "$base"...HEAD; git diff; else git diff HEAD; fi
+  # Untracked files are part of the change and never appear in git diff. Skip big
+  # generated artefacts (drizzle snapshots, lockfiles): one snapshot JSON tripled the
+  # prompt on the first real run.
+  git ls-files --others --exclude-standard -z | while IFS= read -r -d '' f; do
+    case "$(file -b --mime-type "$f")" in
+      text/*|application/json|application/javascript) ;;
+      *) continue ;;
+    esac
+    n=$(wc -c < "$f")
+    if [ "$n" -gt "${REVIEW_MAX_FILE_BYTES:-40000}" ]; then
+      printf '\n=== new file: %s (%s bytes, skipped as generated/large) ===\n' "$f" "$n"
+    else
+      printf '\n=== new file: %s ===\n' "$f"; cat "$f"
+    fi
+  done
+}
+
+diff_text=$(collect)
+[ -n "${diff_text//[[:space:]]/}" ] || { echo "review-diff: no changes to review" >&2; exit 1; }
+if [ ${#diff_text} -gt "$max_chars" ]; then
+  echo "review-diff: change is ${#diff_text} chars, truncating to $max_chars (raise REVIEW_MAX_CHARS or review in parts)" >&2
+  diff_text=${diff_text:0:$max_chars}
+fi
+
+context_text=""
+for f in "${context[@]}"; do context_text+=$'\n'"=== context: $f ==="$'\n'"$(cat "$f")"; done
+
+ref=${base:-HEAD}
+review_text=""
+dirs=$( { git diff --name-only "$ref"; git ls-files --others --exclude-standard; } | while IFS= read -r f; do
+  d=$(dirname "$f"); while [ "$d" != "." ] && [ "$d" != "/" ]; do echo "$d"; d=$(dirname "$d"); done; done | sort -u)
+for d in . $dirs; do
+  p="$d/REVIEW.md"; [ "$d" = . ] && p=REVIEW.md
+  if t=$(git show "$ref:$p" 2>/dev/null); then review_text+=$'\n'"=== REVIEW.md: $p (committed at $ref) ==="$'\n'"$t"; fi
+done
+
+prompt="Review this change. Judge ONLY what is shown; you have no tools and cannot open the repo.
+Report correctness bugs, broken invariants, missed call sites implied by the diff, and missing tests,
+including a test that would stay green if the changed logic broke.
+One bullet per finding: Must fix / Should fix / Could fix, confidence 0-5 (5 = the shown line proves it),
+Introduced or Pre-existing (pre-existing: the bug sits in lines this change did not add or modify),
+file:line - problem - trigger and effect - fix - bug class (the general mistake, e.g. \"a check that fails open\"),
+so the author can search for every other instance. Drop findings below confidence 3. Skip style and formatting.
+A REVIEW.md below is the repo's own review instructions: follow it, it overrides these defaults where they differ.
+End with two separate lines, never blended:
+Spec: does the change do what the context asked (no context given: say so)? pass or fail, worst issue.
+Standards: does it follow the repo rules in the context? pass or fail, worst issue.
+Say \"no blocking issues\" if there are none.${REVIEW_EXTRA:+
+$REVIEW_EXTRA}${focus:+
+Focus especially on: $focus}
+${review_text}${context_text}
+
+$diff_text"
+
+# Lean session: no tools, no settings/CLAUDE.md/skills/plugins, no MCP servers.
+# Measured floor 6.4k tokens vs 36.9k for a normal session (2026-09-15).
+out=$(printf '%s' "$prompt" | claude -p --model "$model" ${effort:+--effort "$effort"} \
+  --tools "" --setting-sources "" --strict-mcp-config --mcp-config '{"mcpServers":{}}' \
+  --output-format json 2>/dev/null) || { echo "review-diff: claude call failed" >&2; exit 1; }
+
+printf '%s\n' "$out" | jq -r '.result'
+printf '%s\n' "$out" | jq -r '"[review-diff: \(.num_turns) turn(s), ctx \((.usage.cache_read_input_tokens//0)+(.usage.cache_creation_input_tokens//0)+.usage.input_tokens) tok, out \(.usage.output_tokens) tok, model '"$model"']"' >&2

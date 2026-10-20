@@ -1,0 +1,65 @@
+# Whitelist repo: track ONLY the core config/knowledge files.
+# Everything else (sessions, caches, credentials, projects, the skills repo
+# which is its own git repo) stays untracked.
+*
+!.gitignore
+!CLAUDE.md
+!INSTALL.md
+!RULES.md
+!ENVIRONMENT.md
+!PROMPT-GUIDE.md
+!MODEL-MIGRATION.md
+!HARVEST.md
+!SKILLS-REDO-PLAN.md
+# One line per review (review skill), read to judge whether reviews earn their cost
+!review-log.tsv
+# Handoffs for work in the knowledge repos (handoff skill: dated files plus a root pointer)
+!HANDOFF.md
+!handoff/
+handoff/*
+!handoff/*.md
+!RTK.md
+!HISTORY.md
+!FLEET.md
+!fleet.json
+!settings.json
+!statusline.sh
+# Subagent definitions (cavecrew, copied from the caveman plugin 2026-10-16)
+!agents/
+agents/*
+!agents/*.md
+# Knowledge auto-push hook script (portable rebuild artifact)
+!scripts/
+scripts/*
+!scripts/autopush-knowledge.sh
+!scripts/autopush-repos.conf
+!scripts/bootstrap-agent-brain.sh
+!scripts/fleet-facts.py
+!scripts/knowledge-lint.py
+!scripts/knowledge-preserve.py
+# Safety guards (RULES.md "Git and secrets")
+!scripts/agent-guard.py
+!scripts/build-opencode-agents.py
+!scripts/rtk-opencode.ts
+!INSTRUCTIONS.md
+!scripts/agent-guard-opencode.ts
+!scripts/guards-test.sh
+# Weekly Box checks (Agent Factory loop, D180) and the scripts they call
+!scripts/box-checks.py
+!scripts/skill-usage.py
+!scripts/skill-change-check.sh
+!git-hooks/
+!git-hooks/*
+# Plugin manifest (which plugins/marketplaces to reinstall) - not the plugin code
+!plugins/
+plugins/*
+!plugins/installed_plugins.json
+!plugins/known_marketplaces.json
+# Auto-memory (knowledge, not transcripts) - whitelist the memory dir only;
+# session transcripts and everything else under projects/ stay untracked.
+!projects/
+projects/*
+!projects/*/
+projects/*/*
+!projects/*/memory/
+!projects/*/memory/**

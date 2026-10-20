@@ -1,0 +1,234 @@
+[
+ {
+  "id": "mycloset-hooks-order",
+  "repo": "~/projects/mycloset",
+  "intro": "b5e568927dcddcb1fb92b9f6d91a55a73c34fed6",
+  "fix": "d8f9cf1cd1d2b967df11dd1edb1186fd67160a13",
+  "files": [
+   "src/pages/MaletaPage.tsx"
+  ],
+  "line_hint": "src/pages/MaletaPage.tsx:182",
+  "bug": "A useState hook (refetching) is declared after an early 'if (loading || !trip) return' in the component, so hook count changes between renders and the page crashes (rules of hooks).",
+  "keywords": [
+   "hook",
+   "early return",
+   "useState",
+   "render"
+  ],
+  "diff_chars": 16725,
+  "confidence": 5
+ },
+ {
+  "id": "mycloset-sw-stale-list",
+  "repo": "~/projects/mycloset",
+  "intro": "5e16573032d053eeaa9a29e90b3d4b61db9fd090",
+  "fix": "1e266b290cd0c0db5e8de6ce771fbaa108dc210e",
+  "files": [
+   "src/sw.ts"
+  ],
+  "line_hint": "src/sw.ts:29",
+  "bug": "The service worker serves /api/items with StaleWhileRevalidate, so a refetch right after a mutation returns the pre-mutation cached list and the change does not show until reopen.",
+  "keywords": [
+   "StaleWhileRevalidate",
+   "stale",
+   "cache",
+   "mutation"
+  ],
+  "diff_chars": 11780,
+  "confidence": 3
+ },
+ {
+  "id": "mycloset-style-tipo-flat",
+  "repo": "~/projects/mycloset",
+  "intro": "664c0335e64a778dfe37496c16798da94b762f9c",
+  "fix": "cba99da3f848be04d8961e20ecafb33ddb5c1125",
+  "files": [
+   "src/lib/recommend.ts"
+  ],
+  "line_hint": "src/lib/recommend.ts:99",
+  "bug": "A style's flat allowedTipos whitelist is applied to every garment of every kind, so tagging a kind with a tipo outside the list (list written for another kind) silently drops those garments from the style and suggestions come back empty.",
+  "keywords": [
+   "tipo",
+   "whitelist",
+   "every category",
+   "filter"
+  ],
+  "diff_chars": 21615,
+  "confidence": 4
+ },
+ {
+  "id": "mycloset-empty-day-suggestions",
+  "repo": "~/projects/mycloset",
+  "intro": "240f3287a4bcf58ad4dcc401f8b13565c984a957",
+  "fix": "473dc2d4712da3baa17965eb472a672f0da4e9ea",
+  "files": [
+   "src/pages/HistoryPage.tsx"
+  ],
+  "line_hint": "src/pages/HistoryPage.tsx:218",
+  "bug": "The refactor collapses the empty-day branch to a bare 'register a look' button and removes the inline DaySuggestions path, so empty past/today days lose their outfit suggestions (regression).",
+  "keywords": [
+   "suggestions",
+   "removed",
+   "empty day",
+   "regression"
+  ],
+  "diff_chars": 10513,
+  "confidence": 3
+ },
+ {
+  "id": "mycloset-learned-container-drag",
+  "repo": "~/projects/mycloset",
+  "intro": "9b4727f81c2c31fb65415335ab80602fedf34188",
+  "fix": "b8fe5ed16260de86ace2a4d9b28f9aa3fd9d9e2e",
+  "files": [
+   "src/pages/trip/TripResumenPage.tsx"
+  ],
+  "line_hint": "src/pages/trip/TripResumenPage.tsx:134",
+  "bug": "Container assignment merges 'learned' category-to-container memory derived from this trip's own moves, so moving one garment teaches the category and auto-distribute moves every other garment of that category into the same container in the same render.",
+  "keywords": [
+   "learned",
+   "category",
+   "autoDistribute",
+   "moves all"
+  ],
+  "diff_chars": 56846,
+  "confidence": 3
+ },
+ {
+  "id": "finance-transfer-leg-find",
+  "repo": "~/projects/finance-proj",
+  "intro": "c6dd5b39177063c32ebcb3b56f4b8e176b9ac11a",
+  "fix": "c035e765f970d238212b55be40e180e1a9ec0801",
+  "files": [
+   "lib/db/import-service.ts"
+  ],
+  "line_hint": "lib/db/import-service.ts:119",
+  "bug": "detectCrossAccountTransfers links a transfer using others.find(), which takes the first compatible row; with two same-amount candidates in the window it links an arbitrary leg with no ambiguity signal, silently removing both rows from income/expense and budgets.",
+  "keywords": [
+   "find",
+   "ambiguous",
+   "transfer",
+   "first match"
+  ],
+  "diff_chars": 46196,
+  "confidence": 4
+ },
+ {
+  "id": "finance-lockguard-overlay-login",
+  "repo": "~/projects/finance-proj",
+  "intro": "4780de2d557a9a853ed227f5ecd6a04615b04580",
+  "fix": "ede16392f9863b792a21aa4cd39a1d1b437e8da3",
+  "files": [
+   "components/LockGuard.tsx"
+  ],
+  "line_hint": "components/LockGuard.tsx:26",
+  "bug": "On pathname === '/login' the effect returns early without clearing locked, and LockGuard sits in the root layout so state survives client navigation: the fixed full-screen overlay stays on top of the login form and the password cannot be typed.",
+  "keywords": [
+   "locked",
+   "overlay",
+   "/login",
+   "state",
+   "reset"
+  ],
+  "diff_chars": 19856,
+  "confidence": 4
+ },
+ {
+  "id": "finance-drilldown-effect-dep",
+  "repo": "~/projects/finance-proj",
+  "intro": "bffcd9640b74ad99fc4fb3973464427ce2338d2b",
+  "fix": "c1d36bebb05333e65543ab021acafaefcb77db7d",
+  "files": [
+   "components/MovimientosViews.tsx"
+  ],
+  "line_hint": "components/MovimientosViews.tsx:45",
+  "bug": "The effect that resyncs the segment depends only on initialView; when the pivot drill-down navigates to ?view=lista&category=... from a state where initialView was already 'lista', the effect never fires and the user keeps seeing the pivot while the filter was applied silently.",
+  "keywords": [
+   "useEffect",
+   "dependency",
+   "initialView",
+   "navigation"
+  ],
+  "diff_chars": 11185,
+  "confidence": 3
+ },
+ {
+  "id": "finance-outlier-dismiss-client-only",
+  "repo": "~/projects/finance-proj",
+  "intro": "f007bcb60d2227a1d26fabf51c11de541e082bc3",
+  "fix": "361640d1a907a23e728588f93188051be96813fd",
+  "files": [
+   "components/review/ReviewInbox.tsx"
+  ],
+  "line_hint": "components/review/ReviewInbox.tsx:175",
+  "bug": "The outlier 'ok' action only adds to client state so the item returns on reload, and opening an outlier navigates to /transactions?focus=<id>, a parameter the transactions page ignores, so the user lands on the bare list.",
+  "keywords": [
+   "dismiss",
+   "persist",
+   "client state",
+   "focus",
+   "ignored"
+  ],
+  "diff_chars": 15038,
+  "confidence": 3
+ },
+ {
+  "id": "recall-sw-page-cache-unversioned",
+  "repo": "~/projects/recall",
+  "intro": "c6797fc6a88e26cef487e1ec28a46cfe2d09f6d6",
+  "fix": "15f25b90c04fdb61704ff2e7f85838688f84b989",
+  "files": [
+   "src/sw/index.js"
+  ],
+  "line_hint": "src/sw/index.js:27",
+  "bug": "The service worker page cache is a fixed name (recall-pages-v1) never invalidated on deploy, so the network-first fallback can serve cached HTML that references chunk hashes the new build no longer serves (stale or blank page).",
+  "keywords": [
+   "cache",
+   "version",
+   "deploy",
+   "stale",
+   "network-first"
+  ],
+  "diff_chars": 9441,
+  "confidence": 4
+ },
+ {
+  "id": "recall-cron-missed-tolerance",
+  "repo": "~/projects/recall",
+  "intro": "3da0f28805e44a68b05e7078e5f8483cd340885a",
+  "fix": "6ce274abab5e8742ff2ca19fe49cb3e651dfc077",
+  "files": [
+   "worker/index.ts"
+  ],
+  "line_hint": "worker/index.ts:18",
+  "bug": "cron.schedule is created without missedExecutionTolerance; node-cron 4.x silently drops any tick that fires later than its 1 s default, and host timers here run tens of seconds late, so the daily 08:00 nudge is skipped.",
+  "keywords": [
+   "node-cron",
+   "missedExecutionTolerance",
+   "late tick",
+   "dropped"
+  ],
+  "diff_chars": 8777,
+  "confidence": 3
+ },
+ {
+  "id": "personal-dash-start-session-no-guard",
+  "repo": "~/projects/personal-dash",
+  "intro": "9b24004811ed67aa39987876844bf7c5dcb867e6",
+  "fix": "d91deaab301bb25ce12426a476e586417dbd91e0",
+  "files": [
+   "app/(app)/workouts/session/actions.ts"
+  ],
+  "line_hint": "app/(app)/workouts/session/actions.ts:11",
+  "bug": "startSession inserts a new workout_sessions row on every call with no check for an unfinished session, so a double tap, second tab or retry stacks duplicate running sessions (and Discard then reveals the next one underneath).",
+  "keywords": [
+   "duplicate",
+   "double tap",
+   "unfinished session",
+   "idempotent",
+   "guard"
+  ],
+  "diff_chars": 25231,
+  "confidence": 3
+ }
+]

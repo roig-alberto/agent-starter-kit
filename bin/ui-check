@@ -1,0 +1,218 @@
+#!/usr/bin/env python3
+# (shebang = uv tool venv where the playwright package lives; reinstall recipe in REBUILD)
+"""ui-check - token-minimal headless UI verification (dev-system).
+
+One command in, one summary line out. Designed so an agent spends ~30 tokens per
+verification instead of driving a browser through tool calls.
+
+Usage:
+  ui-check URL [--width 390] [--height 844]
+           [--selector CSS ...]      # per selector: count, size spread, color, bg
+           [--js EXPR]               # eval in page, print JSON result
+           [--login URL PASSWORD]    # POST {"password": ...} first (app session cookie)
+           [--cookie NAME=VALUE]     # set a cookie directly (domain = target URL host)
+           [--shot PATH]             # save a PNG (view only when needed - images cost tokens)
+           [--expect-title SUBSTR]   # FAIL if title lacks substring
+           [--full]                  # don't truncate --js output / title
+           [--wait networkidle|load] # load for pages holding an SSE/WebSocket stream
+           [--console]               # second line CONSOLE {json}: errors (uncaught, failed own-origin
+                                     # load/fetch/XHR) and warnings (console.error, other failures)
+
+Output example:
+  OK http=200 title='Mi Armario' overflow=0 sel[.hero]=1x(390x212) js=null
+  Uniform matches print one box. Matches that differ print the spread instead, and a
+  selector that Playwright resolved inside a shadow root adds light=N shadow=N:
+  OK ... sel[button]=12x first(0x0) w=0..184 h=0..44 color=... bg=... light=11 shadow=1
+Exit codes: 0 pass, 1 any check failed, 2 usage error, 3 load/launch error.
+Errors always print to stdout so an agent reading stdout never sees an empty result.
+
+Install (REBUILD): uv tool install playwright && playwright install --with-deps chromium
+Deployed: /usr/local/bin/ui-check (canonical copy: dev-system/scripts/ui-check)
+"""
+import argparse, json, sys
+from urllib.parse import urlparse
+
+FLAGS = ("--width --height --selector --js --login --cookie --shot "
+         "--expect-title --full --wait --console --help")
+JS_LIMIT = 200
+MEASURE_CAP = 300
+TITLE_LIMIT = 40
+
+class _Parser(argparse.ArgumentParser):
+    # AXI principle 6: usage errors are output the agent must read, so they go to
+    # stdout in the same shape as every other result - not stderr, where an agent
+    # sees only an empty stdout and misreads exit 2 as "the page failed to load".
+    def error(self, message):
+        print(f"ERROR usage: {message}")
+        print(f"help: ui-check URL [{FLAGS}]")
+        sys.exit(2)
+
+def main():
+    ap = _Parser(add_help=True)
+    ap.add_argument("url")
+    ap.add_argument("--width", type=int, default=390)
+    ap.add_argument("--height", type=int, default=844)
+    ap.add_argument("--selector", action="append", default=[])
+    ap.add_argument("--js")
+    ap.add_argument("--login", nargs="+", metavar="LOGIN_URL [PASSWORD]",
+                    help="POST {password} first. Password optional: if omitted, read from "
+                         "$UI_CHECK_PW or ~/.config/ui-check/<host:port>.pw (0600). So agents "
+                         "never need the plaintext - the user sets the file once.")
+    ap.add_argument("--cookie", action="append", default=[])
+    ap.add_argument("--shot")
+    ap.add_argument("--expect-title")
+    ap.add_argument("--full", action="store_true")
+    # networkidle never settles on a page holding an open SSE/WebSocket stream (live screens):
+    # use --wait load there; it then gives the page 1 s to render before measuring.
+    ap.add_argument("--wait", choices=["networkidle", "load"], default="networkidle")
+    # Agent Factory D143: listen to the browser too. Errors = uncaught page errors and failed page loads, fetch or XHR
+    # calls to the page's own origin (4xx/5xx or no answer; /favicon.ico ignored). Warnings = console.error lines and
+    # other failed requests. Reported on a second line, CONSOLE {json}; it does not fail the check (the caller decides).
+    ap.add_argument("--console", action="store_true",
+                    help="report uncaught errors and failed own-origin requests (errors) and console.error and "
+                         "other failed requests (warnings) on a second line: CONSOLE {json}")
+    a = ap.parse_args()
+
+    from playwright.sync_api import sync_playwright
+
+    fails = []
+    parts = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        ctx = browser.new_context(viewport={"width": a.width, "height": a.height})
+        host = urlparse(a.url).hostname or "localhost"
+        for c in a.cookie:
+            name, _, value = c.partition("=")
+            ctx.add_cookies([{"name": name, "value": value, "domain": host, "path": "/"}])
+        if a.login:
+            import os
+            login_url = a.login[0]
+            pw = a.login[1] if len(a.login) > 1 else os.environ.get("UI_CHECK_PW")
+            if not pw:
+                netloc = urlparse(login_url).netloc or urlparse(a.url).netloc
+                pwfile = os.path.expanduser(f"~/.config/ui-check/{netloc}.pw")
+                if os.path.exists(pwfile):
+                    pw = open(pwfile).read().strip()
+            if not pw:
+                print(f"FAIL login: no password (pass it, set $UI_CHECK_PW, or create "
+                      f"~/.config/ui-check/{urlparse(login_url).netloc}.pw)")
+                sys.exit(1)
+            r = ctx.request.post(login_url, data=json.dumps({"password": pw}),
+                                 headers={"Content-Type": "application/json"})
+            if not r.ok:
+                print(f"FAIL login http={r.status}")
+                sys.exit(1)
+        page = ctx.new_page()
+        cons = {"errors": [], "warnings": []}
+        if a.console:
+            u0 = urlparse(a.url)
+            origin = f"{u0.scheme}://{u0.netloc}"
+            def note(kind, text):
+                if len(cons[kind]) < 10:
+                    cons[kind].append(text[:200])
+            def bad(url, rtype, text):
+                pu = urlparse(url)
+                if pu.path == "/favicon.ico":
+                    return
+                own = f"{pu.scheme}://{pu.netloc}" == origin and rtype in ("document", "fetch", "xhr")
+                note("errors" if own else "warnings", text)
+            page.on("pageerror", lambda e: note("errors", f"uncaught: {(str(e).splitlines() or ['(no message)'])[0]}"))
+            # The favicon's own "Failed to load resource" line is noise too.
+            page.on("console", lambda m: m.type == "error"
+                    and not (m.location or {}).get("url", "").endswith("/favicon.ico")
+                    and note("warnings", f"console.error: {m.text}"))
+            def failed(r):
+                text = f"no answer: {r.method} {urlparse(r.url).path} ({r.failure})"
+                # A request the page itself cancelled (StrictMode's double effects, an AbortController on unmount)
+                # is not a broken page: a warning, never an error.
+                if "ERR_ABORTED" in str(r.failure or ""):
+                    if urlparse(r.url).path != "/favicon.ico":
+                        note("warnings", text)
+                    return
+                bad(r.url, r.resource_type, text)
+            page.on("requestfailed", failed)
+            page.on("response", lambda r: r.status >= 400 and bad(r.url, r.request.resource_type,
+                                                                  f"HTTP {r.status}: {r.request.method} {urlparse(r.url).path}"))
+        try:
+            resp = page.goto(a.url, wait_until=a.wait, timeout=30000)
+            if a.wait == "load":
+                page.wait_for_timeout(1000)
+        except Exception as e:
+            print(f"ERROR load: {str(e).splitlines()[0][:120]}")
+            sys.exit(3)
+        status = resp.status if resp else 0
+        parts.append(f"http={status}")
+        if status >= 400:
+            fails.append(f"http {status}")
+        title = page.title()
+        if a.full or len(title) <= TITLE_LIMIT:
+            parts.append(f"title='{title}'")
+        else:
+            parts.append(f"title='{title[:TITLE_LIMIT]}'(truncated, {len(title)} chars)")
+        if a.expect_title and a.expect_title.lower() not in title.lower():
+            fails.append(f"title lacks '{a.expect_title}'")
+        overflow = page.evaluate(
+            "document.documentElement.scrollWidth - document.documentElement.clientWidth")
+        parts.append(f"overflow={overflow}")
+        if overflow > 0:
+            fails.append(f"horizontal overflow {overflow}px at {a.width}w")
+        for sel in a.selector:
+            els = page.query_selector_all(sel)
+            if not els:
+                parts.append(f"sel[{sel}]=MISSING")
+                fails.append(f"selector {sel} not found")
+                continue
+            # Playwright CSS pierces open shadow roots, document.querySelectorAll does not,
+            # so a Next.js dev-overlay button used to be counted as app UI with nothing said.
+            try:
+                light = page.evaluate("s => document.querySelectorAll(s).length", sel)
+            except Exception:
+                light = None
+            measured = els[:MEASURE_CAP]
+            boxes = page.evaluate(
+                "els => els.map(e => { const r = e.getBoundingClientRect();"
+                " const s = getComputedStyle(e);"
+                " return [Math.round(r.width), Math.round(r.height),"
+                " s.color, s.backgroundColor]; })", measured)
+            ws = [b[0] for b in boxes]
+            hs = [b[1] for b in boxes]
+            color, bg = boxes[0][2], boxes[0][3]
+            n = len(els)
+            # AXI principle 4: a count printed next to ONE element's box reads as "all N are
+            # this size". State the spread whenever the matches are not uniform, so a single
+            # broken element cannot hide behind a healthy first match.
+            if len(set(ws)) == 1 and len(set(hs)) == 1:
+                geo = f"({ws[0]}x{hs[0]})"
+            else:
+                geo = (f" first({ws[0]}x{hs[0]}) w={min(ws)}..{max(ws)}"
+                       f" h={min(hs)}..{max(hs)}")
+                if n > len(measured):
+                    geo += f" (spread over first {len(measured)} of {n})"
+            split = "" if light is None or light == n else f" light={light} shadow={n - light}"
+            parts.append(f"sel[{sel}]={n}x{geo} color={color} bg={bg}{split}")
+        if a.js:
+            try:
+                raw = json.dumps(page.evaluate(a.js))
+                if a.full or len(raw) <= JS_LIMIT:
+                    parts.append("js=" + raw)
+                else:
+                    parts.append(f"js={raw[:JS_LIMIT]} (truncated, {len(raw)} chars total;"
+                                 f" --full for all)")
+            except Exception as e:
+                parts.append(f"js=ERROR:{str(e).splitlines()[0][:80]}")
+                fails.append("js eval failed")
+        if a.shot:
+            page.screenshot(path=a.shot, full_page=False)
+            parts.append(f"shot={a.shot}")
+        if a.console:
+            parts.append(f"console={len(cons['errors'])}err/{len(cons['warnings'])}warn")
+        browser.close()
+
+    extra = ("\nCONSOLE " + json.dumps(cons)) if a.console else ""
+    if fails:
+        print("FAIL " + " ".join(parts) + " | " + "; ".join(fails) + extra)
+        sys.exit(1)
+    print("OK " + " ".join(parts) + extra)
+
+if __name__ == "__main__":
+    main()

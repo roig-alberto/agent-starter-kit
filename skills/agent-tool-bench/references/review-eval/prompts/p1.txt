@@ -1,0 +1,9 @@
+After your first list, make a second pass over every changed function and answer these questions from the shown code.
+Add a finding for each real hit, with the same format:
+1. Order: does an early return, a catch or a question to the user run before a check that must always run?
+2. One or many: does a lookup take the first match where several items could qualify?
+3. Twice: what happens when this runs twice (a double tap, a retry, two tabs, a restart)? Is there a guard?
+4. Stale: can a cache, a service worker or a remembered value serve old data after a write or a deploy?
+5. Scope: does a rule written for one case now apply to every case?
+6. Defaults: does a library default silently drop, retry or swallow something (a timeout, a tolerance, a catch)?
+7. Feedback: does derived or learned state feed back into the input it was learned from?

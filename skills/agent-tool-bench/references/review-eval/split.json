@@ -1,0 +1,20 @@
+{
+ "seed": 20261020,
+ "note": "tune prompts on train only; test is held out and never read while writing a change",
+ "train": [
+  "finance-drilldown-effect-dep",
+  "finance-lockguard-overlay-login",
+  "finance-transfer-leg-find",
+  "mycloset-learned-container-drag",
+  "mycloset-style-tipo-flat",
+  "mycloset-sw-stale-list",
+  "personal-dash-start-session-no-guard",
+  "recall-cron-missed-tolerance",
+  "recall-sw-page-cache-unversioned"
+ ],
+ "test": [
+  "finance-outlier-dismiss-client-only",
+  "mycloset-empty-day-suggestions",
+  "mycloset-hooks-order"
+ ]
+}

@@ -1,0 +1,6 @@
+After your first list, make a second pass over each changed function, using the shown code only:
+1. Trace one concrete input through each new branch and each new early return, and say what the user sees.
+2. Name what the old code did that the new code no longer does, and whether anything still needs it.
+3. State the assumption each new line relies on (about data, timing, a library default, or the caller), and when it
+   fails.
+Add a finding for each real problem this pass finds, with the same format.
