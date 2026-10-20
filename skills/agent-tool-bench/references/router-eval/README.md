@@ -1,5 +1,28 @@
 # Router eval - does a prompt load the right skill?
 
+## Scoring
+
+- `fixtures.tsv`: one line per prompt (id, prompt, expected skill, source). Alternatives are joined with `|`;
+  `none` means no skill should load.
+- **Free check** (`word_rank.py`, no model): word overlap between each prompt and every skill's name, description
+  and router rows. It reports top-1 and top-3: is the expected skill the first match, or in the first three.
+- **Real runs** (`run.sh`): one capped `claude -p` per prompt in an empty scratch repo, with no write tools.
+  `score.py` passes a fixture when the first skill it loaded is one of the expected ones (or none for `none`), and
+  calls it a harness failure when the scratch repo is not clean afterwards. `fired.py` shows one run.
+- **The bar:** this is a regression eval, so a fixture is fixed only at 3 passes of 3 (`pass^3`). One sweep at
+  n=1 swings by about 3 fixtures, so compare two routers on the same day.
+- `baseline.json` holds the last free check and the last full sweep. `knowledge-lint.py` warns when the free check
+  drops below it, or when the router changed after the last sweep (`router_sha`).
+
+## On a new machine
+
+1. Run `python3 word_rank.py`. It should match `baseline.json`, which the kit export scored on the kit itself.
+2. Run the full sweep once ("When to run what" 3, about $5 and 6 minutes), then `python3 score.py 1`.
+3. Write its numbers into `baseline.json` `real_runs`, and record `router_sha` (the first 16 hex characters of the
+   sha256 of RULES.md from `## Scenario router` to the end). The linter asks for a sweep until you do.
+4. Rewrite fixtures as your own requests arrive: real messages, typos kept, beat invented ones. Every skill needs
+   one fixture where it is the only accepted answer.
+
 ## Baseline (2026-10-16, phase 2 of the skills redo)
 
 39 fixtures in `fixtures.tsv`: 27 real messages from past chats (typos kept), 9 from the 2026-09 runs, 3

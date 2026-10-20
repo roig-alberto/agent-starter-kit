@@ -7,7 +7,7 @@ It copies an allowlist, drops the box-only skills, replaces personal values with
 this repo (~/.config/agent-starter-kit/redact.tsv, one literal "from<TAB>to" per line), overlays templates/, then
 refuses to finish while any left-column value, a private IP or a secret (gitleaks) is still in the output.
 """
-import fnmatch, glob, io, json, os, re, shutil, subprocess, sys, tarfile
+import tempfile, fnmatch, glob, io, json, os, re, shutil, subprocess, sys, tarfile
 
 HOME = os.path.expanduser("~")
 KIT = os.path.dirname(os.path.abspath(__file__))
@@ -121,7 +121,7 @@ def main():
     labels = json.load(open(f"{ev}/labels.json"))
     labels["runs"] = {k: v for k, v in labels["runs"].items() if k.split("/", 1)[1].rsplit("-", 1)[0] not in PRIVATE_EVAL_CASES}
     json.dump(labels, open(f"{ev}/labels.json", "w"), indent=1)
-    readme = open(f"{ev}/README.md", encoding="utf-8").read().replace("| 17 real cases from our repos:", f"| {len(cases)} real cases from our repos (5 more that describe security bypasses stay private):")
+    readme = open(f"{ev}/README.md", encoding="utf-8").read().replace("| 17 real cases from our repos:", f"| {len(cases)} real cases from our repos (5 more stay private; their bug classes are listed below):")
     open(f"{ev}/README.md", "w", encoding="utf-8").write(readme)
 
     rules = f"{KIT}/claude/RULES.md"
@@ -151,6 +151,21 @@ def main():
 
     shutil.copytree(f"{KIT}/templates", f"{KIT}/claude", dirs_exist_ok=True)
     shutil.copytree(f"{KIT}/templates-skills", f"{KIT}/skills", dirs_exist_ok=True)  # fill-in skills (fleet-ops)
+
+    # The router baseline, re-scored on the kit's own skills and router: this box's numbers would make the linter
+    # warn on a fresh install. No real sweep has run on the kit, so its real-run numbers and router fingerprint go.
+    re_dir = f"{KIT}/skills/agent-tool-bench/references/router-eval"
+    with tempfile.TemporaryDirectory() as tmp:
+        subprocess.run([sys.executable, f"{re_dir}/word_rank.py", "--json", f"{tmp}/wr.json"], check=True, capture_output=True,
+                       env={**os.environ, "SKILLS_DIR": f"{KIT}/skills", "RULES_FILE": f"{KIT}/claude/RULES.md"})
+        wr = json.load(open(f"{tmp}/wr.json"))
+    base = json.load(open(f"{re_dir}/baseline.json"))
+    base.pop("router_sha", None)
+    base["date"] = "the kit export (free check only)"
+    base["fixtures"] = sum(1 for r in open(f"{re_dir}/fixtures.tsv", encoding="utf-8") if not r.startswith("#") and len(r.split("\t")) == 4)
+    base["word_rank"] = {"top1": wr["top1"], "top3": wr["top3"], "scored": wr["scored"], "top1_pct": int(1000 * wr["top1"] / wr["scored"]) / 10}  # rounded down: the linter fails below it
+    base["real_runs"] = {"note": "not run on this kit yet: run the full sweep once (README, 'On a new machine'), then record the result here"}
+    json.dump(base, open(f"{re_dir}/baseline.json", "w"), indent=2)
 
     leaks = []
     for p in glob.glob(f"{KIT}/**/*", recursive=True, include_hidden=True):

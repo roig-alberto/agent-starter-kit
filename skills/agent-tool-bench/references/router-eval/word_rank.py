@@ -20,7 +20,7 @@ import yaml
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SKILLS = os.environ.get("SKILLS_DIR") or os.path.expanduser("~/.agents/skills")  # SKILLS_DIR: a task worktree (Agent Factory)
-RULES = os.path.expanduser("~/.claude/RULES.md")
+RULES = os.environ.get("RULES_FILE") or os.path.expanduser("~/.claude/RULES.md")  # RULES_FILE: the starter kit export
 STOP = set("a an and any are as at be before by for from in into is it its my need needs of on or our so that "
            "the them this to use want we when with you your help me i".split())
 

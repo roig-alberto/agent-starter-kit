@@ -1,21 +1,14 @@
 {
-  "date": "2026-10-16 (phase 5)",
-  "fixtures": 62,
+  "date": "the kit export (free check only)",
+  "fixtures": 57,
   "word_rank": {
-    "top1": 42,
-    "top3": 53,
-    "scored": 59,
-    "top1_pct": 71.1
+    "top1": 38,
+    "top3": 47,
+    "scored": 54,
+    "top1_pct": 70.3
   },
   "real_runs": {
-    "model": "sonnet",
-    "turn_cap": 2,
-    "passed": 59,
-    "ran": 62,
-    "pass_pct": 95,
-    "original_39_passed": 33,
-    "cost_usd_api_equivalent": 7.42,
-    "run_suffix": "nocap"
+    "note": "not run on this kit yet: run the full sweep once (README, 'On a new machine'), then record the result here"
   },
   "note": "Raise these numbers when a full sweep beats them. Lower word_rank only with a real run proving the lost fixture still routes correctly, recorded in word_rank_changes.",
   "word_rank_changes": [
@@ -34,7 +27,6 @@
       "real_run_proof": "run-skill.sh frontend-interaction-patterns: select_finicky, dock_drag, toast_modal, toast_position loaded frontend-interaction-patterns, toast_middle one-shot, swipe_janky animate (all accepted), $0.76"
     }
   ],
-  "router_sha": "57814fb43d5066ff",
   "history": [
     {
       "run": "1",
