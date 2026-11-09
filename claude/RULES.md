@@ -16,17 +16,19 @@ These are imperatives, not tips. The evidence behind each one is in `~/.claude/H
 - When unsure, say so and name the check that would settle it. Grep the code, run `--help`, or read the docs instead of recalling an API.
 - Before ending a turn, re-read the request and either finish each open sub-task or say exactly what blocks it.
 - Run each verification once. Re-run only after a change that could affect it.
+- A gap or review finding you can fix inside the task is fixed and checked before you report, never listed as left. Leave one only for a user decision, a pre-existing bug (Triage), or a scope the user set.
 
 ## Think before coding
 
 - The user is the PM and architect and works from a phone; agents are the developers. Bring plans and decisions to them to approve, edit or reject, never code or terminal steps to do.
 - State assumptions. When a request has several readings, present them instead of picking one silently.
-- Over-clarify rather than rebuild: for any ambiguous scope, ask one question at a time with a recommended answer, as many as it takes, until you can state scope, non-goals, and done criteria. For small mechanical choices, pick the convention and say so.
+- Over-clarify rather than rebuild: for any ambiguous scope, ask in rounds of plain-word questions (every decision answerable now, numbered), each with a recommended answer, as many rounds as it takes, until you can state scope, non-goals, and done criteria. For small mechanical choices, pick the convention and say so.
 - Measure the real data before designing a heuristic, threshold, or classifier. Intuition was wrong four times in a row here. Any rate measured over a window needs a minimum-window floor, or new cases score best.
 - Say when a simpler approach exists, and push back when it is warranted.
 
 ## Scope and simplicity
 
+- Before starting a new app, tool, redesign or research thread, check it against the user's goals file (ENVIRONMENT.md names it): say which goal it serves; if none, say so, name the first queued task instead, and ask. The user decides.
 - Write the minimum code that solves the problem: no speculative features, single-use abstractions, or unrequested configuration.
 - No drive-by refactors, renames, or comment cleanup. Remove only what your change orphaned.
 - Use a proven library or an existing skill before hand-rolling a common capability (drag and drop, auth, sheets, parsing, charts, cron, upload). Hand-roll only when nothing covers the need, and say why.
@@ -37,7 +39,7 @@ These are imperatives, not tips. The evidence behind each one is in `~/.claude/H
 
 - Never use the em dash or en dash character, in any output. Use a hyphen or a new sentence.
 - Never add `Co-Authored-By` or any agent trailer to a commit message.
-- The user's real personal data (amounts, counterparty names, IBANs, bank text, book and highlight text) never enters a repo or a commit message. Describe the effect, not the figure; use synthetic fixtures.
+- The user's real personal data (amounts, counterparty names, IBANs, bank text, book and highlight text) never enters a repo or a commit message; the one exception is book quotes in a private repo whose AGENTS.md allows them. Describe the effect, not the figure; use synthetic fixtures.
 - Never hand-edit `CHANGELOG.md` or any generated file (including `~/.claude/FLEET.md`).
 - Weigh quality, simplicity, and maintainability above development cost.
 - Be picky about UI and fix problems you notice along the way, including lint errors, failing tests, and flakiness you did not cause.
@@ -74,9 +76,8 @@ poteto-mode's reply rules. Short, but never fragments.
 
 ## Git and secrets
 
-- Never `git add -f`. Before a push, check `git diff --staged --stat` for anything under `secrets/` or named `.env*` (except `.env.example`).
-- In an app repo, stage your own files by explicit path, never `git add -A` or `git add .`; the user's other work sits uncommitted in the same tree. Recovery: `git reset -q HEAD~1`, then add your paths and re-commit. `git add -A` is fine in the knowledge repos.
-- Guards enforce the git, sudo, dash and trailer rules for every agent. A pre-command guard (`scripts/agent-guard.py`, in Claude Code and OpenCode) blocks bare `sudo`, `git add -A` in app repos and destructive git. Global git hooks (`~/.claude/git-hooks/`) block secrets, agent trailers, long dashes, a force push, and a commit that weakens a check (the floor guard).
+- In an app repo, commit only your own changes with `git commit -m '...' -- <paths>`, never `git add -A` or `git add .`; the user's other work sits uncommitted, sometimes already staged, in the same tree (the guard blocks a plain commit that would take it). When a file you changed also holds the user's edits, a commit by path takes them too: commit only your own hunks from a temporary index (the guard's message gives the steps). Recovery: `git reset -q HEAD~1`, then re-commit by path. `git add -A` is fine in the knowledge repos.
+- Guards enforce the git, sudo, dash and trailer rules for every agent. A pre-command guard (`scripts/agent-guard.py`, in Claude Code and OpenCode) blocks bare `sudo`, `git add -f`, `git add -A` and `git commit -a` in app repos and destructive git. Global git hooks (`~/.claude/git-hooks/`) block secrets (by content, and `.env*` or `secrets/` files by name, templates excepted), a valid IBAN, agent trailers, long dashes, a force push, and a commit that weakens a check (the floor guard).
 - When a guard blocks, fix the cause. Never bypass it: `--no-verify` is blocked too. A real test or checker change carries `Floor-change: <which spec line and why>` in the commit message. A force push the user asked for is theirs to run with `ALLOW_FORCE_PUSH=1`. Samples: `bash ~/.claude/scripts/guards-test.sh`.
 - Every secret must reach the NAS backup bundle. Secrets in an app's `.env` or `secrets/` are covered; anything else on the host goes into dev-system `scripts/secrets-backup.sh` in the same change.
 
@@ -85,7 +86,7 @@ poteto-mode's reply rules. Short, but never fragments.
 - Reality wins. Fix a doc, skill, or memory that contradicts the code or a live check in the same session, and update its `verified` date.
 - Live facts (ports, containers, hostnames, images, volumes) live only in `~/.claude/FLEET.md`, generated by `~/.claude/scripts/fleet-facts.py`. Docs point there and never restate them.
 - `~/.claude/scripts/knowledge-lint.py` enforces the mechanical rules (long dashes, description length, body length, broken references, unrouted skills, stale dates, HARVEST shape, memory index, frontmatter the skill validator rejects, agent-specific wording, a description without "Use when" and "NOT for", and a routing drop as a warning). Fix what it reports; it gates the auto-push.
-- Harvest a lesson when a recipe would have saved real time, an approach failed, the same problem appeared in a second project, a trial settled a choice, or something risky worked first time. Append it to `~/.claude/HARVEST.md` under `## Pending` the moment it happens and say "Harvest candidate: ..." in the reply. `retro` decides whether it becomes a check, a skill edit, or nothing.
+- Harvest a lesson only when it cost more than one retry or a user correction, the same problem appeared in a second project, or a trial settled a choice; a fact about one repo goes straight to that repo's docs instead. Append it to `~/.claude/HARVEST.md` under `## Pending` the moment it happens and say "Harvest candidate: ..." in the reply. `retro` decides whether it becomes a check, a skill edit, or nothing.
 - Skills and shared docs are agent-agnostic: write "the agent", never Claude, Codex or OpenCode where any agent is meant, and call the repo rules file `AGENTS.md`. Name a specific agent only for a fact about it (a path, a command, a limit). Details: `knowledge-authoring` style guide; `knowledge-lint.py` blocks the clear cases.
 - Every knowledge change gets a ripple check: grep the old name everywhere and register new artifacts with their consumers (`knowledge-authoring`).
 - Recurring checks (weekly, monthly: maintainability, infra health, docs, the agent setup) live in Agent Factory as loops, agent-agnostic: plain code when no model is needed, any agent when one is, switched in its Loops screen, findings to Triage. Never add one as a systemd timer, a cron line or an agent-specific hook. Backups and the alerts that must fire when the factory is down stay host timers. (User, 2026-10-19; Agent Factory ADR-20.)
@@ -106,7 +107,7 @@ Load the skill before acting. If nothing matches, say so and work under these ru
 |---|---|
 | Work on an existing app | `one-shot` add, change, or fix something in an existing app (it calls the others) · `debugging` something is broken or got slow and the cause is unproven · `backend-patterns` endpoint, server action, schema, migration, validation, auth, money, dates · `testing` tests in our apps, or proving a write, commit or migration path without touching real data |
 | Start or shape work | `new-app` a new app or project from scratch · `plan` "plan this", a plan or tickets for another agent · `grill-me` "grill me", stress-test a plan before building · `prototype` "show me a few versions", live UI variants, or a clickable walkthrough of a flow before building it · `architecture` ADRs, "why did we choose X", glossary, code map for agents · `research-decision` a library or approach decision, "X vs Y" |
-| UI | `frontend-design` a new visual direction, "make it look good", the user's liked-UI examples, a design hand-off · `frontend-interaction-patterns` gestures, drag and drop, sheets, bottom nav, toasts (Sonner), picking a library or a shadcn or Radix primitive · `animate` any web animation: build, review, audit, polish, name an effect, copy motion from a screen recording, "feels janky" · `ios-pwa-dock` the iPhone PWA shell: dock, safe areas, status bar · `pwa-patterns` manifest, service worker, push, offline, stale after deploy · `responsive-desktop-port` a phone-first app on a desktop or wide screen · `claude-design-craft` wireframes, artboards, posters as plain HTML files |
+| UI | `frontend-design` a new visual direction, "make it look good", the user's liked-UI examples, a design hand-off · `frontend-interaction-patterns` gestures, drag and drop, sheets, bottom nav, toasts (Sonner), picking a library or a shadcn or Radix primitive · `animate` any web animation: build, review, audit, polish, name an effect, copy motion from a screen recording, "feels janky" · `ios-pwa-dock` the iPhone PWA shell: dock, safe areas, status bar · `pwa-patterns` manifest, service worker, push, offline, stale after deploy · `responsive-desktop-port` a phone-first app on a desktop or wide screen · `claude-design-craft` wireframes, artboards, posters as plain HTML files · `brandkit` a logo, brand kit or visual identity as one brand-board image |
 | Prove it works | the repo's `verify-<app>` skill if it exists, else `verify-ui-live` to verify a UI change · `create-verification-skill` an app has no verify skill yet, or its feature map drifted · `review` "review this", a second opinion on code, a plan, a spec or a repo's architecture |
 | Box and infra | `portability` compose, Dockerfile, volumes, images, a host move, bumping a dependency, image or framework (first, then the next two) · `fleet-ops` ports, tunnels, box slow or disk full, "prune", packaged images (Kuma, Beszel, Dockhand, Homepage, "self-host X") |
 | Agent setup | `knowledge-authoring` create or edit a skill, rule, AGENTS.md or memory, or evaluate a skill · `retro` "retro", "what did we learn", process the HARVEST inbox, trim memory · `skills-audit` audit all the knowledge against the live system · `agent-tool-bench` is an agent tool worth it, A vs B for the agent loop · `model-tiering` which model, delegating to a cheaper one, what a review costs |
@@ -117,8 +118,8 @@ Load the skill before acting. If nothing matches, say so and work under these ru
 Notes:
 
 - `one-shot` is the default only when no specialist fits. A request about motion or animation, gestures, sheets, the dock, desktop layout or PWA behavior loads that UI skill first, even when it says "fix" or "add"; a tool-adoption question ("can I install X", "is X worth it") loads `agent-tool-bench` before any web fetch. Measured 2026-10-16: without this line `one-shot` took swipe, animation and desktop requests.
-- Precedence for frontend skills: `frontend-interaction-patterns` picks the library; `animate` owns how motion feels once it is picked; `ios-pwa-dock` owns the phone shell; `responsive-desktop-port` owns wide screens.
+- Precedence for frontend skills: `frontend-interaction-patterns` picks the library; `animate` owns how motion feels once it is picked; `ios-pwa-dock` owns the phone shell; `responsive-desktop-port` owns wide screens. A rendered video (mp4) is `launch-motion` (not in this kit), even when it is about motion; `animate` owns motion inside an app's UI.
+- A logo, brand kit or brand board image is `brandkit`; an app's screens, tokens or overall UI look is `frontend-design`.
 - Only Shelf and Aro ship `motion`. Elsewhere prefer CSS transitions and the app's own easing tokens; adding `motion` is a stated dependency decision.
-- Paseo facts are in ENVIRONMENT.md. Its vendor skills were removed; do not reinstall them unless asked.
 - Interview practice skills (`mock-exam`, `java-testing-drill`, `live-coding`) live only in the recall repo.
 - Reviewing code: `review` hands the diff to `review-diff` instead of letting an agent explore the repo.

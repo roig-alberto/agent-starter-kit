@@ -33,14 +33,15 @@ screenshot reviews miss.
    the brief or `DESIGN_TOKENS.md`, because the examples are the user's actual taste signal. Done when: the
    brief names what it takes from the examples, or says why this project departs from them.
 3. **External path: assemble the design hand-off bundle** (the `input-<feature>-<project>/` folder in the
-   Samba inbox, shape in ENVIRONMENT.md). **Copy `references/ui-examples/*` into the bundle** and reference
+   inbox folder, path and shape in ENVIRONMENT.md). **Copy `references/ui-examples/*` into the bundle** and reference
    them in `PROMPT.md` as "reference UI the user likes - match this energy, not pixel-for-pixel." Paste the
    fidelity wording from part 2 into `PROMPT.md`. This step is what "remind me to give it to the design
    agent" means. Done when: the bundle folder lists the example images and `PROMPT.md` holds the fidelity
    paragraph.
-4. **In-house path: run the part 1 method** below and deliver hi-fi static wireframes per part 2. Done
-   when: part 1 step 5 is done.
-5. **When the user drops new "I like this" screens** (usually via the Samba inbox), move them into
+4. **In-house path: run the part 1 method** below, deliver hi-fi static wireframes per part 2, then walk
+   `references/standout-checklist.md` (part 3; on the external path, paste it into `PROMPT.md`). Done when:
+   part 1 step 5 is done and every checklist question has an answer in the design or a reason it does not apply.
+5. **When the user drops new "I like this" screens** (usually via the inbox folder), move them into
    `references/ui-examples/`, add a row to the table in `references/ui-examples.md` with a one-line concrete
    description (surface, accent, type, motif), and refresh the recurring-aesthetic paragraph if the taste
    signal shifts. Done when: every image in the folder has a row in the table.
@@ -77,7 +78,8 @@ screenshot reviews miss.
 
 1. **Brainstorm a compact token system** in your thinking: colour as 4-6 named hex values; type for 2+
    roles (a characterful display face used with restraint, a body face, a utility face if needed); a
-   layout concept in one-sentence prose plus ASCII wireframes; and the single signature element. Done
+   layout concept in one-sentence prose plus ASCII wireframes; and the single signature element. A product
+   with no logo yet gets a `brandkit` board first; its palette and type are the starting tokens. Done
    when: all four parts are written down.
 2. **Critique the plan against the brief.** If any part reads like the default you would produce for any
    similar page, revise it and say what you changed and why. Done when: each part survived or was revised.
@@ -146,6 +148,8 @@ screenshot reviews miss.
 - `references/ui-examples.md`: part 2, what each image shows, the recurring aesthetic, and the
   accent-system refinements. Read it before any brief or hand-off.
 - `references/ui-examples/`: the liked-UI images themselves; copy them into every design hand-off bundle.
+- `references/standout-checklist.md`: part 3, what makes an app stand out (motion, mascot, icons, starter chips,
+  widgets, store screenshots), from a designer's talk. Walk it before a design is called done.
 - `references/history.md`: the closet incidents behind the selector, dark-theme, and false-green rules, and
   why the fidelity rule exists. Read it when a rule seems excessive.
 - `LICENSE.txt`: the license terms for the upstream design text.

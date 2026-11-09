@@ -53,7 +53,7 @@ before spotting the 429.)
 fails SILENTLY - the session cookie is `Secure`, and Chrome stores those only on a secure
 origin (`localhost` qualifies, a bare IP over http does not). You get a rendered page
 showing the LOGIN screen, which reads as "the app is fine". This is the normal case on
-this fleet because prod is tunnel-only. Recipe + curl workaround in
+this fleet because prod has no host port (use the tailnet HTTPS hostname instead). Recipe + curl workaround in
 `references/gotchas-and-perf.md`.
 
 **In a browser-context eval (`chrome-devtools-axi eval`, like the old Playwright MCP) that trick is

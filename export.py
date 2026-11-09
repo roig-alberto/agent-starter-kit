@@ -19,12 +19,14 @@ CLAUDE_FILES = [".gitignore", "CLAUDE.md", "INSTRUCTIONS.md", "RULES.md", "RTK.m
 CLAUDE_SKIP = {"scripts/bootstrap-agent-brain.sh", "scripts/autopush-repos.conf"}  # the kit's install.sh and template replace them
 # Every file tracked in ~/.claude is shared (CLAUDE_FILES) or private (here); a new one is reported until listed.
 CLAUDE_PRIVATE = ["ENVIRONMENT.md", "HARVEST.md", "FLEET.md", "fleet.json", "HANDOFF.md", "INSTALL.md",
-                  "SKILLS-REDO-PLAN.md", "review-log.tsv", "plugins/*", "projects/*/memory/*", "handoff/*", *CLAUDE_SKIP]
+                  "SKILLS-REDO-PLAN.md", "BITTER-LESSON-PLAN.md", "RULES.bitter-lesson.md", "bitter-lesson.allowlist",
+                  "review-log.tsv", "plugins/*", "hooks/herdr-agent-state.sh", "projects/*/memory/*", "handoff/*", *CLAUDE_SKIP]
 # Repos the knowledge auto-push syncs (scripts/autopush-repos.conf), by folder name: in the kit, or private.
 REPOS_KNOWN = {".claude", "skills", "dev-system"}
 # Skills that stay off the PUBLIC kit (user, 2026-10-20): your house and your phone console (personal), and the box's
 # infrastructure skills (they map its security holes, vault access and exposed services).
-DROP_SKILLS = ["home-assistant-fleet", "claude-spawner", "security", "backups-and-alerts", "fleet-ops"]
+# launch-motion: a third-party skill from a blog zip with no author or licence (2026-10-21), so it stays private.
+DROP_SKILLS = ["home-assistant-fleet", "claude-spawner", "security", "backups-and-alerts", "fleet-ops", "launch-motion"]
 # Of those, the ones the kit ships as a fill-in template instead (user, 2026-10-20): templates-skills/<name>/.
 TEMPLATE_SKILLS = ["fleet-ops"]
 GONE = [k for k in DROP_SKILLS if k not in TEMPLATE_SKILLS]  # skills with no copy at all in the kit
@@ -132,6 +134,21 @@ def main():
     for old, new in [(" See `security`.", "")]:
         text = text.replace(old, new)
     open(rules, "w", encoding="utf-8").write(text)
+
+    # settings.json: the allow lists name this box's prod stacks, containers and local APIs, and a hook that runs a
+    # private file would break on a new machine.
+    sp = f"{KIT}/claude/settings.json"
+    s = json.load(open(sp, encoding="utf-8"))
+    s.get("permissions", {}).pop("allow", None)
+    s.pop("autoMode", None)
+    for event, groups in list(s.get("hooks", {}).items()):
+        for g in groups:
+            g["hooks"] = [h for h in g["hooks"] if not any(fnmatch.fnmatch(w.strip("'\""), f"*/.claude/{p}") for p in CLAUDE_PRIVATE for w in h.get("command", "").split())]
+        s["hooks"][event] = [g for g in groups if g["hooks"]]
+        if not s["hooks"][event]:
+            del s["hooks"][event]
+    json.dump(s, open(sp, "w", encoding="utf-8"), indent=2)
+    open(sp, "a", encoding="utf-8").write("\n")
 
     files = [p for d in GENERATED for p in glob.glob(f"{KIT}/{d}/**/*", recursive=True, include_hidden=True) if os.path.isfile(p)]
     for p in files:

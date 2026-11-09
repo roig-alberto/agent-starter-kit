@@ -46,3 +46,18 @@ as `references/performance.md` (user, 2026-10-16), with pstack's fair-measuremen
 runs, warm against cold). Kept from the earlier version: the evidence labels, the store-first layer reads, the
 count-the-rows rule, the destructive-repro rule and the box's evidence sources. The old step 7 ("fix the root
 cause, not the symptom") and step 8 ("prove the fix on the same path as the repro") became steps 5 and 6.
+
+## 2026-10-28: read the whole window around the first error
+
+Idea from georgewangyu/georgeskills `read-only-log-investigation-ops` (no license, written here in our own words):
+an error line is an anchor, not a cause; the lines of every level around it show the sequence, and an empty or wrong
+log reads like a healthy service.
+
+## Benchmark evidence: Agent Factory's Bug fix template (D229, 2026-10-23)
+
+The factory's Bug fix template runs this skill as its first step (Opus investigates, read-only), then a cheap builder
+writes the failing test and the fix. On one real personal-dash bug, investigating first (DASH-26: $1.35, 4 pings, 3
+review fixes) beat the same builder with no investigation (DASH-27: $0.59, 14 pings, 4 fixes, and a builder that
+searched outside its copy). One run per setup, so the fix counts are noise; the ping gap is the result. The benchmark
+varied the investigation step, never this skill's wording, so it does not test steps 2 to 4. Source: agent-factory
+`docs/DECISION-LOG.md` D229, ADR-22, migration 0069.

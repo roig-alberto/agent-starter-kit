@@ -102,4 +102,6 @@ a vendor's benchmark, and rejecting one on a hand-rolled n=1. The instrument is 
   when to run the free check, a per-skill run or a full sweep, and the write-proofing it must keep.
 - `references/review-eval/README.md`: the reviewer recall eval (17 real bugs from our repos): run it before changing
   `review-diff`'s prompt, model or effort, and when the `sonnet` alias moves.
+- `references/dirty-tree-eval/README.md`: the dirty-tree eval (asked to fix and commit, does the agent leave the
+  user's uncommitted work alone?): run it after changing RULES.md's git rules or when the default model moves.
 - `references/history.md`: dated incidents and a map from the old section numbers to the current files.

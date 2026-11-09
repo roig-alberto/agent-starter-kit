@@ -46,12 +46,18 @@ click through a wizard → commit) use one of two, both headless on the box:
 
 ## 0c. Gestures and transient UI - the two things a naive check silently misses
 
-- **Gestures (swipe rows, @dnd-kit, long-press): `browser_click` and `dragTo` NO-OP.** Dispatch
-  synthetic `PointerEvent`s, and **match the dispatch target to where the gesture listens** - the
-  ELEMENT for React `onPointerMove` props, **`document`** for @dnd-kit's post-pointerdown global
-  listeners. Getting this backwards is a silent zero-movement failure (both directions cost a cycle:
-  Aro 2026-07-13/14). **@dnd-kit cannot be driven in `ui-check`/plain headless Chromium at all** - use
-  `chrome-devtools-axi` (`drag @<from> @<to>`, real Chrome input), or verify by render + persist-action + mirroring a proven impl.
+- **Gestures (swipe rows, @dnd-kit, long-press): use real input in small steps, never `drag_to`.**
+  Measured 2026-10-27 on Shelf's Want-to-read reorder (@dnd-kit 6.3, `PointerSensor` distance 6,
+  `TouchSensor` delay 180): `page.mouse.move(handle); down(); move(target, steps=15); up()` reorders and
+  persists in Chromium, Chrome and WebKit, headless or visible; a touch drag held 250 ms through CDP
+  `Input.dispatchTouchEvent` (`has_touch=True`) works too; `locator.drag_to()` fails in every engine,
+  because it jumps in one move and the sensor never sees the 6 px of travel. A visible browser changes
+  nothing here. `chrome-devtools-axi` (`drag @<from> @<to>`, real Chrome input) is the CLI route
+  (not re-tested 2026-10-27).
+- **Inside `ui-check --js` there is no mouse**, so dispatch synthetic `PointerEvent`s, and **match the
+  dispatch target to where the gesture listens** - the ELEMENT for React `onPointerMove` props,
+  **`document`** for @dnd-kit's post-pointerdown global listeners. Getting this backwards is a silent
+  zero-movement failure (both directions cost a cycle: Aro 2026-07-13/14).
 - **Transient UI (toast, 5s optimistic Undo): a screenshot LIES** - it lands mid-slide-in
   (`opacity:0.02`, off-viewport `y`) or after auto-dismiss. Poll `getBoundingClientRect().y` +
   `getComputedStyle().opacity` inside ONE async `browser_evaluate` until settled; do the whole
@@ -69,7 +75,7 @@ Full ready-to-paste recipes (thresholds, event fields, timings): `references/mea
 `e2e/*.e2e.py`) at the throwaway app on `:3099`; Next makes an env `DATABASE_URL` win over `.env`.
 Caudal 2026-07-10: proved the browser commit persists a shared `traspaso_pair_id`, real DB untouched.
 
-## 0d. In an Agent Factory task worktree (no dev container, no tunnel) - verified 2026-10-13
+## 0d. In an Agent Factory task worktree (no dev container, no tailnet hostname) - verified 2026-10-13
 
 An agent working a task from Agent Factory (`~/projects/agent-factory`) sits in a git worktree under
 `~/.local/share/agent-factory*/worktrees/`, not in the app's checkout: the app's dev container does not see it.

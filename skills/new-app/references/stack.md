@@ -1,6 +1,6 @@
 # Phase 1: requirements and stack
 
-Invoke the **grill-me** skill with the project idea. Walk the whole design tree one question at a time,
+Invoke the **grill-me** skill with the project idea. Walk the whole design tree in rounds,
 resolving dependencies: audience and scope, platform, persistence and hosting, **the full stack**
 (frontend, backend, DB and ORM, auth, validation, deploy), the data model, domain rules, edge cases, and
 what is explicitly out of scope. Each answer is a locked decision with a recorded reason. Do not stop until
@@ -37,15 +37,15 @@ change.
 > disagree, the spec wins):
 > - **Frontend**: Next.js (App Router) + TypeScript + Tailwind CSS + **shadcn/ui**; installable PWA.
 > - **Architecture**: **Next monolith**: server components and actions, direct DB via Drizzle; one
->   container, one port, and one tunnel per app, no API boilerplate. Add a separate **worker**
+>   container, one port, and one Tailscale sidecar per app, no API boilerplate. Add a separate **worker**
 >   container (`node-cron`) only if the app has scheduled jobs.
 > - **DB**: PostgreSQL + **Drizzle ORM** (`postgres.js` driver) + Drizzle Kit migrations.
 > - **Validation**: Zod (schemas shared between routes and forms).
 > - **Auth**: a single password (`@node-rs/argon2`, the hash stored **base64** in env to survive `$`
 >   interpolation) + a signed HTTP-only **HMAC cookie session** (edge-safe, sliding expiry).
-> - **Hosting**: `docker-compose` (hot-reload dev container) on the home base, a **Cloudflare
->   Tunnel** (outbound, no open ports) behind **Cloudflare Access** (Zero Trust), NAS backup
->   baked in. No Node on the host. Code lives WSL-native in `~/projects/<app>`.
+> - **Hosting**: `docker-compose` (hot-reload dev container) on the home base, a **Tailscale
+>   sidecar** (userspace `tailscaled`, `tailscale serve` on HTTPS 443, tailnet only, no Funnel, no host
+>   port), NAS backup baked in. No Node on the host. Code lives in `~/projects/<app>`.
 > - **Tests**: vitest for pure logic. All URLs are relative; absolutes come from env (`BASE_URL`).
 >
 > This default fits a single-user, low-frequency, privacy-conservative app. Steer away from it
@@ -74,10 +74,10 @@ option list.
   container (`node-cron`); if none, do not add the container. If you DO add one, every `cron.schedule`
   needs an explicit `missedExecutionTolerance`, because the 1000 ms default silently drops every tick on
   this box (`backend-patterns`, section Background jobs).
-- **Auth:** a single password with a signed cookie (only behind an edge gate like Cloudflare Access) vs
+- **Auth:** a single password with a signed cookie (only inside a private network like the tailnet) vs
   passkey or WebAuthn with rate limiting (open internet) vs real multi-user auth.
 - **Validation:** Zod, with schemas shared between client and server (the default).
-- **Hosting and deploy:** self-hosted docker-compose with a Cloudflare Tunnel and Access vs cloud or
+- **Hosting and deploy:** self-hosted docker-compose with a Tailscale sidecar (tailnet only) vs cloud or
   serverless vs static. All URLs are relative; absolutes come from env (`BASE_URL`).
 
 **Gate:** the stack and the core domain decisions are explicit and agreed.
@@ -85,17 +85,17 @@ option list.
 ## Blessed default stack and non-negotiables (from the old blessed-stack reference)
 
 The blessed default stack (opinionated, overridable) is locked in SYSTEM_SPEC §2: Next.js App Router,
-TypeScript, Tailwind, **shadcn/ui**, Postgres, **Drizzle**, Docker Compose (hot reload), a Cloudflare tunnel,
+TypeScript, Tailwind, **shadcn/ui**, Postgres, **Drizzle**, Docker Compose (hot reload), a Tailscale sidecar,
 and NAS backup.
 
 **The architecture is a Next monolith**: server components and actions, with direct DB access via Drizzle.
-That means one container, one port, and one tunnel per app, with no API boilerplate. **Ask about a front/back
+That means one container, one port, and one Tailscale sidecar per app, with no API boilerplate. **Ask about a front/back
 split only** for an ML-backend or multi-client app. This is the one architecture question asked at creation
 time.
 
 Non-negotiables (from SYSTEM_SPEC):
 
-- Project code lives in `~/projects` **inside WSL2**, never under `/mnt/c`.
+- Project code lives in `~/projects/<app>`.
 - Docker **CE** (systemd-managed), **not** Docker Desktop. `restart: unless-stopped` everywhere.
 - The backup is a **`db-backup` sidecar** (it still migrates *with* the app), not a host systemd timer.
 - The shared NAS target, set up once: `<NAS_IP>`, SFTP, user `<backup user>`, folder `<share>`, path

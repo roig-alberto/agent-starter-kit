@@ -142,8 +142,6 @@ app on the scratch port 3099) and the MySQL, SQLite, managed, and bare-process v
   `TEST_URL`, or clone the schema, before driving.
 - **`docker compose run … web <schema-cmd>` hangs silently and looks like a drizzle prompt.** The anonymous
   `- /app/node_modules` volume is empty under `run`; clone the schema with `pg_dump` instead.
-- **Calling a Next server action from vitest throws
-  `Invariant: static generation store missing in revalidatePath`.** Alias `next/cache` to a no-op stub.
 
 ## References
 
@@ -151,5 +149,7 @@ app on the scratch port 3099) and the MySQL, SQLite, managed, and bare-process v
 - `references/fixtures-and-write-paths.md`: fixture scoping, the frozen-date trap, migrations on real data.
 - `references/isolated-db-recipes.md`: read before isolating a database; copy-paste recipes for every stack,
   the vitest server-action harness, and related skills.
+- `references/mutation-checks.md`: read before proving a guard with a mutation (`scripts/mutate.sh`) or moving
+  everything of a kind into a registry (completeness test first).
 - `references/history.md`: every incident and measurement behind these rules; read it when a rule seems
   excessive.

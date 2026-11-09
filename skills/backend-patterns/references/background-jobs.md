@@ -6,9 +6,9 @@ node-cron, own dev/prod profile pair. Skip the container entirely if no schedule
 ## node-cron 4.x DROPS a late tick - always pass `missedExecutionTolerance`
 
 Its default tolerance is **1000 ms**, and a tick later than that is not run at all: it logs
-`missed execution … Possible blocking IO or high CPU` and advances to the next slot. Timers on this
-box overshoot by ~1.7 s even on an idle container (ENVIRONMENT.md "Timers on this box drift"), so
-the default means the job silently never runs. Loop: 56 syncs, then **110 consecutive misses, zero
+`missed execution … Possible blocking IO or high CPU` and advances to the next slot. Timers on the
+old WSL2 host overshot by ~1.7 s even on an idle container (measured there; ENVIRONMENT.md "Scheduled
+jobs"), so the default meant the job silently never ran. Keep the explicit tolerance on native Linux too. Loop: 56 syncs, then **110 consecutive misses, zero
 executions, 29 hours**, no alert; recall had the same for 8 days. The warning text is misleading - 
 it blames IO/CPU while the process is idle.
 

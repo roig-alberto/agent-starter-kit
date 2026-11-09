@@ -2,9 +2,10 @@
 """Global commit-msg hook (core.hooksPath), so it runs for every agent and the user.
 
 Blocks: an agent trailer, a long dash in the message or the added lines, a secret in the
-staged files (gitleaks; also when gitleaks is missing or errors), and the floor guard (a
+staged files (gitleaks; also when gitleaks is missing or errors), a staged secret file by name
+(.env, secrets/), a valid IBAN in the message or the added lines, and the floor guard (a
 commit that weakens a check to get to green). A real floor change passes with a line
-`Floor-change: <reason>` in the message. During a merge only the secret scan runs.
+`Floor-change: <reason>` in the message. During a merge only the secret and message checks run.
 The repo's own .git/hooks/commit-msg runs first. Samples: ~/.claude/scripts/guards-test.sh.
 """
 import os
@@ -15,7 +16,7 @@ import sys
 DASHES = re.compile("[\u2013\u2014]")
 TRAILER = re.compile(r"^(co-authored-by|claude-session):|noreply@anthropic\.com|generated with \[?claude code",
                      re.I | re.M)
-NO_DASH_CHECK = re.compile(r"(^|/)(CHANGELOG\.md|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|[^/]*\.lock)$")
+NO_DASH_CHECK = re.compile(r"(^|/)(CHANGELOG\.md|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|[^/]*\.lock)$|^synced/")
 CODE = re.compile(r"\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|py|go|java|kt|rs|swift|sh|vue|svelte)$")
 TEST = re.compile(r"(\.(test|spec)\.|_test\.|(^|/)test_|(^|/)tests?/|(^|/)__tests__/|(^|/)e2e/)")
 SUPPRESS = re.compile(r"@ts-ignore|@ts-nocheck|eslint-disable|biome-ignore|#\s*noqa|#\s*type:\s*ignore|"
@@ -23,6 +24,20 @@ SUPPRESS = re.compile(r"@ts-ignore|@ts-nocheck|eslint-disable|biome-ignore|#\s*n
 SKIP = re.compile(r"\.(skip|only|todo)\b|\b[xf](it|describe|test)\(|@pytest\.mark\.(skip|xfail)|"
                   r"\bt\.Skip\(|@Disabled\b")
 ASSERT = re.compile(r"\b(expect|assert\w*|should)\b")
+# RULES.md "Git and secrets" (2026-10-28): a secret file by name, which gitleaks (contents only) misses. Templates pass.
+SECRET_NAME = re.compile(r"(^|/)\.env(\.(?!(example|sample|template|snippet)$)[^/]*)?$|(^|/)secrets/(?!\.gitignore$|\.gitkeep$)")
+# RULES.md "The user's standing rules": personal data never enters a repo. An IBAN is the one kind a pattern can
+# catch; the checksum (ISO 13616, mod 97) keeps random strings out, and synthetic fixtures use an invalid one.
+IBAN = re.compile(r"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,4})?\b")
+
+
+def ibans(text):
+    found = []
+    for m in IBAN.finditer(text):
+        s = m.group().replace(" ", "")
+        if 15 <= len(s) <= 34 and int("".join(str(int(c, 36)) for c in s[4:] + s[:4])) % 97 == 1:
+            found.append(s[:4] + "...")  # never echo the number itself
+    return found
 
 
 def git(*args):
@@ -70,7 +85,29 @@ def secret_scan():
     return [f"gitleaks failed (exit {r.returncode}), so nothing was scanned:\n{(r.stderr or r.stdout).strip()}"]
 
 
-def floor(added, removed, deleted):
+def base_commit():
+    """Where this branch left its base branch, or None on the base branch itself (or when none is found)."""
+    cur = git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+    for ref in ("origin/HEAD", "main", "master"):
+        name = git("rev-parse", "--abbrev-ref", ref)
+        if name.returncode != 0:
+            continue
+        if name.stdout.strip().split("/")[-1] == cur:
+            return None
+        mb = git("merge-base", "HEAD", ref)
+        return mb.stdout.strip() if mb.returncode == 0 and mb.stdout.strip() else None
+    return None
+
+
+def on_base(f, base):
+    """The lines of f on the base, or None when there is no base to compare with (count every removal)."""
+    if base is None:
+        return None
+    r = git("show", f"{base}:{f}")
+    return set(l.strip() for l in r.stdout.splitlines()) if r.returncode == 0 else set()
+
+
+def floor(added, removed, deleted, base=None):
     found = []
     for f, text in added:
         if not CODE.search(f):
@@ -83,7 +120,10 @@ def floor(added, removed, deleted):
         if CODE.search(f) and TEST.search(f):
             found.append(f"test file deleted: {f}")
     for f in {f for f, _ in removed if CODE.search(f) and TEST.search(f) and f not in deleted}:
-        lost = sum(bool(ASSERT.search(t)) for g, t in removed if g == f) \
+        # An assertion this branch added itself and now takes out again was never part of the base's floor
+        # (FACTORY-58, 2026-11-05: a task backing out its own fallback test was blocked).
+        kept = on_base(f, base)
+        lost = sum(bool(ASSERT.search(t)) and (kept is None or t.strip() in kept) for g, t in removed if g == f) \
             - sum(bool(ASSERT.search(t)) for g, t in added if g == f)
         if lost > 0:
             found.append(f"{lost} assertion(s) removed from {f}")
@@ -107,6 +147,12 @@ def main():
     if DASHES.search(msg):
         problems.append("the message contains a long dash. Use a hyphen or a new sentence.")
     problems += secret_scan()
+    if ibans(msg):
+        problems.append("the message contains an IBAN. Personal data never enters a repo: describe the effect instead.")
+    names = git("diff", "--cached", "--name-only", "--diff-filter=ACMR").stdout.split("\n")
+    for f in [f for f in names if SECRET_NAME.search(f)]:
+        problems.append(f"secret file staged: {f}. Keep it out of git (it belongs in the NAS secrets bundle); "
+                        "a template is named .env.example.")
 
     git_dir = git("rev-parse", "--git-dir").stdout.strip()
     if not os.path.exists(os.path.join(git_dir, "MERGE_HEAD")):
@@ -114,7 +160,10 @@ def main():
         for f, text in added:
             if DASHES.search(text) and not NO_DASH_CHECK.search(f):
                 problems.append(f"long dash added in {f}: {text.strip()[:100]}")
-        weakened = floor(added, removed, deleted)
+            if not NO_DASH_CHECK.search(f) and (found := ibans(text)):
+                problems.append(f"IBAN added in {f} ({', '.join(found)}). Personal data never enters a repo: "
+                                "use a synthetic fixture with an invalid checksum.")
+        weakened = floor(added, removed, deleted, base_commit())
         if weakened and not re.search(r"^Floor-change:\s*\S", msg, re.M | re.I):
             problems.append("floor guard: this commit weakens a check to get to green:\n  " + "\n  ".join(weakened)
                             + "\n  Fix the code instead. If the spec really changed, add a line "

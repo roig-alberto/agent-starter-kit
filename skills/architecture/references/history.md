@@ -38,3 +38,13 @@ surfaced a real bug: three server event types were never listened for by the web
 The user asked for a REVIEW.md in every repo, like ARCHITECTURE.md, after reading Anthropic's "Solving code review"
 post and Claude Code's Code Review docs. Two choices came from those docs: the four sections, and reading only the
 committed copy (never the change's own) so a change cannot soften its own review.
+
+
+## Trim, never remove (2026-10-23)
+
+Agent Factory's ARCHITECTURE.md reached 525 lines against the 450 limit after the benchmark ADRs. Asked whether to
+trim, the user noted the file holds important decisions, so trimming must shorten wording only ("it should be
+trimmed and not removed"). Shortening ADR-20, ADR-21 and ADR-22 to about ten lines each, with the detail left in the
+decision-log entries they cite, brought it to 500 lines; a first pass dropped one real exception (a manager call fails
+instead of pausing, an exception to ADR-8) and one cited ID, both restored after a diff of the cited IDs.
+

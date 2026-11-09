@@ -56,3 +56,5 @@ html_wireframes	make wireframes of the settings screen as html artboards in the 
 toast_position	the toast shows in the middle of the screen, it should sit at the bottom above the dock	frontend-interaction-patterns	synthetic
 pg_array_error	the query typechecks but at runtime it explodes with malformed array literal	backend-patterns	synthetic
 handoff_pickup	read `~/.claude/HANDOFF.md` and continue	handoff	real
+brand_board	make me a logo and a brand kit for my invoicing idea, colours fonts and some mockups	brandkit	real-ish (user, 2026-10-24)
+brand_refresh	i already have a logo for the app but i want a full brand board around it, palette and type	brandkit	synthetic

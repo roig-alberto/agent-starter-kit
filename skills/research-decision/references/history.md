@@ -21,3 +21,11 @@ PWA, so the app hand-rolled a portalled dropdown (2026-07-14).
 From addyosmani/agent-skills `source-driven-development` (MIT): the source hierarchy (official docs, changelog,
 web standards, compatibility tables), what never counts as a primary source, the literal UNVERIFIED line, and
 fetched pages treated as untrusted data.
+
+## 2026-10-27: doors and Not doing
+
+From georgewangyu/GeorgeCodingSkills `brainstorm` (MIT, itself from garrytan/gstack `office-hours` and
+addyosmani/agent-skills `idea-refine`), rewritten: each option is marked as a one-way or two-way door, a
+one-way door needs the user's yes, and the decision record gains a required Not doing field. The example
+comes from project-ideas `RESEARCH.md` (no box-wide VPN). The rest of `brainstorm` was skipped: steps 1 to 4
+and `prototype` already cover options and bakeoffs.

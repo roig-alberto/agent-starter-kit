@@ -17,8 +17,8 @@ If the repo has a project skill `.claude/skills/verify-<app>/` (launch, doctor, 
 cleanup, feature map), use it first; this skill is the generic fallback and the recipe for building one.
 
 This skill confirms a UI change by measuring the real DOM in a headless browser on the box, instead of
-eyeballing or guessing. The dev container is hot-reloading and, while the tunnel origin points at it,
-localhost is exactly what the user sees, so a measurement there is the truth. It prevents "looks fine"
+eyeballing or guessing. The dev container hot-reloads on localhost, and the app's tailnet hostname serves
+the prod container, so a dev measurement shows what the phone will see after the next prod rebuild. It prevents "looks fine"
 claims that a computed style, an overflow check, or a phone-width render would have disproved. Live
 ports, hostnames, and container names are in `~/.claude/FLEET.md`.
 
@@ -34,9 +34,11 @@ ports, hostnames, and container names are in `~/.claude/FLEET.md`.
    `fill @<uid> <text>`, `upload @<uid> <path>`, `eval <js>`, `screenshot <path>`, `stop`. The e2e script
    runs on `$HOME/.local/share/uv/tools/playwright/bin/python`. Recipes and the Playwright MCP revert
    block: `references/multi-step-flows.md`.
-0c. **Drive gestures with synthetic `PointerEvent`s and poll transient UI inside one async eval.** A
-   plain click or `dragTo` no-ops on a swipe row or @dnd-kit, and a screenshot of a toast lands mid-slide
-   or after auto-dismiss (`references/measurement-snippets.md`).
+0c. **Drive gestures with real stepped input and poll transient UI inside one async eval.** Playwright's
+   `drag_to` jumps the pointer in one move, so @dnd-kit never activates; a `page.mouse` drag in small steps
+   works headless in Chromium, Chrome and WebKit (measured on Shelf 2026-10-27). Inside `ui-check --js`
+   there is no mouse, so dispatch `PointerEvent`s there. A screenshot of a toast lands mid-slide or after
+   auto-dismiss (`references/multi-step-flows.md` 0c, `references/measurement-snippets.md`).
 0d. **In an Agent Factory task worktree, run your own dev server.** Start `npm run dev -- --port $PORT --webpack`
    on a free port, `ui-check` it, Read the PNG, and kill the server. Name real paths on the closing
    `SCREENS: /books, /books/1` line, because the factory's Verify step photographs them and fails if one
@@ -48,7 +50,7 @@ ports, hostnames, and container names are in `~/.claude/FLEET.md`.
    defect to fix, not a judgment call; screenshot only at the start, after big changes, and at sign-off.
 1c. **Before calling a design implemented, run a side-by-side fidelity pass.** Open the frames with
    `chrome-devtools-axi open file:///<abs>/<frames>.html`, shoot one frame and the live screen at the same
-   width, and compare state by state. Frames often live in the Samba inbox, so look there first
+   width, and compare state by state. Frames often live in the inbox folder (ENVIRONMENT.md), so look there first
    (`references/design-fidelity.md`).
 2. **For "does the route render", an HTTP smoke check with a login cookie is enough** (curl, no browser).
 2b. **After every driven flow, read the console and the network.** Run `chrome-devtools-axi console` and
@@ -60,18 +62,20 @@ ports, hostnames, and container names are in `~/.claude/FLEET.md`.
    its decisive output, or the screenshot path), `Gap:` (what remains unknown, or None). Never "looks fine"
    and never a check reworded to match what the code does.
    Done when: every check the change promised has a block, and Fail and Unverified ones come first.
-4. **Tell the user it is live, and SHOW it when asked.** The tunneled container already serves the
-   change; to show it, capture with `ui-check --shot <file>.png` and `SendUserFile` the PNG, because a
+4. **Tell the user where it is live, and SHOW it when asked.** A dev edit is live on localhost only; the
+   phone sees it after a prod rebuild (a milestone action, so ask first), which you then check on the
+   tailnet hostname from `~/.claude/FLEET.md`. To show it, capture with `ui-check --shot <file>.png` and `SendUserFile` the PNG, because a
    PNG you only `Read` reaches your context, not the user's.
 
 Setting the pipeline up in a new project (a hot-reload dev container with `./:/app` plus anonymous
-`/app/node_modules` and `/app/.next` volumes, a dev hostname on the tunnel, and `ui-check`) is in
+`/app/node_modules` and `/app/.next` volumes, and `ui-check`) is in
 `references/pipeline-setup.md`, as is what needs action before a change is live (schema, new dependency).
 
 ## Rules
 
-- **Verify against the container the tunnel origin targets, and never start a second dev server.** The
-  hybrid (prod on the tunnel, dev on localhost) measures something the user does not see.
+- **Measure the dev container on localhost while building, and the prod container through its tailnet
+  hostname after a rebuild; never start a second dev server.** The tailnet hostname serves `web-prod`, so
+  a dev pass alone does not prove what the phone shows today. The box is on the tailnet and reaches it.
 - **Never ask the user for the app password.** `--login <url>` with the password omitted reads
   `~/.config/ui-check/<host:port>.pw`; if it is missing, relay the `printf ... > ...pw` line the command
   prints. Do NOT forge a cookie from `SESSION_SECRET`.
@@ -84,6 +88,10 @@ Setting the pipeline up in a new project (a hot-reload dev container with `./:/a
 - **In a dual-shell app, filter to the VISIBLE match.** Use
   `[...document.querySelectorAll('SEL')].filter(e => e.getBoundingClientRect().width > 0)`, because a bare
   `querySelector` returns the hidden desktop instance at `rect [0,0]`.
+- **Check that what looks clickable is clickable.** A chip, card, row or icon styled like a button must be a
+  `button`, a link or a form control, or lose the button look; every `href` must be a URL or a route, never a label
+  (`[...document.querySelectorAll('a[href]')].filter(a => !/^(https?:|\/|#|mailto:)/.test(a.getAttribute('href')))`
+  lists the bad ones). Each one found becomes a regression check.
 - **Prefer measurements to images.** A screenshot costs about 1-2k tokens to view.
 - **You CAN screenshot; never tell the user you cannot.** Both `ui-check --shot` and
   `chrome-devtools-axi screenshot <path>` render on the box.
@@ -100,7 +108,7 @@ Setting the pipeline up in a new project (a hot-reload dev container with `./:/a
 - **A text assertion fails on an uppercase label.** `innerText` applies `text-transform`; assert on
   `textContent`.
 - **`--login` against a prod container by IP shows the login screen.** The cookie is `Secure`; use the
-  curl workaround in `references/gotchas-and-perf.md`.
+  tailnet HTTPS hostname or the curl workaround in `references/gotchas-and-perf.md`.
 - **Browser-context eval cannot read the `.pw` file (`ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`).** Log in
   with curl on the host and inject the cookie; the `.pw` file is keyed by the EXACT host string, and the
   login route differs per app, so grep the app's `app/api`.
@@ -116,8 +124,10 @@ Setting the pipeline up in a new project (a hot-reload dev container with `./:/a
 - **`ERR_CERT_AUTHORITY_INVALID` on a self-signed dev origin.** Launch with
   `--ignore-certificate-errors` and `ignore_https_errors=True`.
 - **A design frame id like `#11-6a2` throws as a selector.** Use `[id="11-6a2"]`.
-- **"Can't access it".** Check DNS, the hostname, and `BASE_URL` first (NXDOMAIN looks like a down app),
-  then the tunnel origin.
+- **"Can't access it".** Check the hostname against FLEET.md and `BASE_URL` first (NXDOMAIN looks like a
+  down app), then `tailscale serve status` inside the app's sidecar for the serve target.
+- **`ui-check: command not found` or no Chromium on a rebuilt host.** Install the browser tools with the
+  steps in dev-system `REBUILD.md`; never hand-roll a different install.
 - **"Changes aren't deploying".** A caching service worker; keep it no-cache in dev, and re-add an
   installed PWA once after the fix.
 - **A Next build-error overlay answers `http=200`.** Look at the PNG, not only the status.

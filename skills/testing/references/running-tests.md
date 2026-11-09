@@ -30,7 +30,7 @@ red change to Triage, so drift that lands between sessions surfaces within a wee
 
 The image's node_modules is STALE. Aro's `web-dev` mounts `./:/app` plus an anonymous `/app/node_modules`
 volume, and that volume was populated when the container was created, so it carries the CURRENT deps
-while the image does not. Run a Paseo worktree or any other copy through
+while the image does not. Run an agent worktree or any other copy through
 `docker compose run -v <tree>:/app web-dev` and you get the IMAGE's node_modules: phantom `FAIL` test
 files and TS2307 errors, identical on a pristine `master` export.
 

@@ -39,7 +39,7 @@
     "command": "bash $HOME/.claude/statusline.sh"
   },
   "enabledPlugins": {
-    "ponytail@ponytail": true
+    "ponytail@ponytail": false
   },
   "extraKnownMarketplaces": {
     "ponytail": {

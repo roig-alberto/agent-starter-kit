@@ -23,8 +23,10 @@ verification, and no record, so the same question gets re-argued in three months
    about the criterion, not "which option do you like". Most X-vs-Y debates dissolve once the criterion
    is explicit.
 2. **Build an options table with at most 3-4 real candidates.** The columns are the option, how it
-   satisfies the criterion, its sharpest drawback, and its maintenance or ecosystem risk. Kill options
-   that fail the criterion outright instead of padding the table.
+   satisfies the criterion, its sharpest drawback, its maintenance or ecosystem risk, and its *door*:
+   two-way when choosing it is cheap to undo (a model for a step, a UI library behind one component),
+   one-way when it is not (a database schema, a public API or URL, deleting data, publishing). Kill
+   options that fail the criterion outright instead of padding the table.
 3. **Verify the load-bearing claims and never answer purely from memory.** Anything that decides the
    outcome (the API exists, the license, the project is maintained, it works with the stack, the actual
    performance) gets checked: fetch the docs or the repo, check the last-release date, grep the codebase
@@ -39,13 +41,16 @@ verification, and no record, so the same question gets re-argued in three months
 4. **Recommend with calibrated confidence.** Give one recommendation, not a survey. State the confidence
    and what sets it ("high - verified the API and it's already a transitive dep" versus "medium - docs
    claim X, didn't test"). If the options are genuinely close, say which cheap experiment would separate
-   them and offer to run it.
+   them and offer to run it. A one-way door is never chosen without the user's explicit yes, even when
+   it is your recommendation; a two-way door can be taken on the recommendation and logged.
 5. **Record the decision where it survives**, in the project `AGENTS.md` (the same file as
    `CLAUDE.md`) or in the "Rejected / parked" section of IMPLEMENTATION_PLAN.md (the format comes from
    `new-app`). Write **Decision**, **Why**,
-   **Rejected alternatives and why not**, and **What would change the answer**. The last field is the
-   load-bearing one: the specific condition that reopens the decision, so a future "should we use Y?"
-   becomes a one-line check instead of a re-litigation.
+   **Rejected alternatives and why not**, **Not doing** (work or scope deliberately left out, each with
+   its reason, never blank; for example "Not doing: a box-wide VPN, it would route every app through it"),
+   and **What would change the answer**. Not doing answers the later "did we decide against that, or
+   forget it?". The last field is the load-bearing one: the specific condition that reopens the decision,
+   so a future "should we use Y?" becomes a one-line check instead of a re-litigation.
 
 ## Rules
 

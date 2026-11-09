@@ -22,9 +22,12 @@ Keep these current so `REBUILD.md` never lies:
 - **New or changed stateful volume**: cover it in the app's backup (sidecar) and note it in `REBUILD.md`.
 - **New host-level piece** (systemd unit, host script, cron): capture it under `host/` or `systemd/` in
   the dev-system repo (with an install note); never leave it only on the live host.
+- **Edited host script or unit**: the edit ends with `sudo /bin/sh -c 'install -m 755 <dev-system copy> <deployed path>'`
+  and `cmp` of the two, and the pair is listed in `box-checks.py deploy_sync`. A copy edited only in dev-system kept
+  research's secrets out of the NAS bundle for weeks (2026-10-26).
 - **Image bump**: update the pin in the compose file or Dockerfile AND anywhere `REBUILD.md` lists it; the
   full pin-sync map is in `references/pin-sync.md`.
-- **Any `ports:`/binding/tunnel-hostname/origin/container-name change**: update the `fleet-ops` port
+- **Any `ports:`/binding/tailnet-node-name/serve-target/container-name change**: update the `fleet-ops` port
   registry row in the same commit (its "sync triggers" section). The registry only stays true if every
   infra change carries its row. `~/.claude/FLEET.md` regenerates from the running system
   (`python3 ~/.claude/scripts/fleet-facts.py`), so rerun it after the change.
@@ -33,6 +36,8 @@ Keep these current so `REBUILD.md` never lies:
 
 dev-system repo, `~/projects/dev-system`:
 
+- `migrations/ubuntu-native/MIGRATION.md` (the 2026-10-27 move to native Ubuntu, phase by phase)
+- `host/bootstrap-ubuntu.sh` (fresh-host bootstrap, run as root) and `host/install-host-services.sh`
 - `REBUILD.md` (master runbook)
 - `host/` (tg-alert, telegram env example, boot-alert unit, README, claude-spawner, mem-watch,
   docker-restart-alert)

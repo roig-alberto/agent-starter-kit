@@ -99,6 +99,13 @@ are never remembered (`NO_DOCK` in `lib/dock.ts`), and a stored one is ignored, 
 repo is drawn with its own icon and colour (`RepoIcon`, set on the repo page) in every list, chip and picker: Repos,
 Search, the @ mention sheet, the board agent's repo chip. Never a hard-coded folder: grep for one before shipping.
 
+**A name never shares its row with a long run of numbers** (2026-10-24, Usage "Pings" card at 390 px: "Feature" was cut
+to "Feat..." because "7.8 per task · 35 tasks · 16 interruptions" took the row): the name goes on its own line (14 px)
+and the numbers under it (13 px `text-3`), and every number says its unit ("7.8 pings per task"). A right-aligned value
+that can still run long wraps (`min-w-0 text-right`) instead of `truncate`. Purpose: the name is what the eye looks for.
+The same goes for action rows (the "Switch to a stronger agent?" card, 2026-10-24): a short verb title ("Keep it as it
+is"), the agent's long name on a 13 px line under it, never "Keep OpenCode · deepseek-v4.1-flash" breaking mid-name.
+
 **Inbox rows like Linear**: two lines (what it needs; then "about what · key · age"), a 40 pt `.glass-deep` round
 icon, title 17 px semibold, second line 15 px; **unread** = white + a blue dot, **read** = dimmed (`text-5`). Title of
 the page 24 px bold (measured on Linear, see below; 34 and 28 were too loud). Purpose: scannable at a glance, read state without badges.
@@ -150,9 +157,66 @@ screen (search field hidden, nothing reachable), and a drag scrolled the page be
 open; measured at phone size with touch: the card's list scrolled 649 px while the page stayed at 0, and a pick closed
 it. The desktop keeps the menu.
 
+**Buttons inside a swipe row stop their own press** (Needs you cards, 2026-10-21, frame P3): an ask's card carries
+Deny / Allow once / Always and still swipes and opens on tap. The swipe row starts its gesture on `pointerdown` and acts
+on `pointerup`, so each inline button calls `e.stopPropagation()` in `onPointerDown`: the row never starts, a tap answers
+without opening the card or starting a swipe. Measured with a real tap at 390 px: Deny answered and the page stayed on
+the list. The card's rounded clip wraps the swipe row (`overflow-hidden rounded-[18px]`), so the swipe colour shows
+inside the card's corners.
+
+**A state card never guesses while its data loads** (task page, 2026-10-21): the Now card first rendered "Not started ·
+0 steps" for a running task, because the pipeline query had not answered yet (a headless shot caught it). The route
+loader now fetches the pipeline with the task, the card shows a quiet placeholder block of its usual height until the
+data is there, and no blue action shows meanwhile. Same rule for "Starting": it shows only once the sessions list is
+known, never for a step that has no agent. Purpose: a card that is wrong for half a second reads as a bug.
+
+**Round header buttons never shrink** (task page, 2026-10-21): with longer tab labels ("Changes 4") the flex row squeezed
+the 44 pt back button into an oval and pushed More 13 px off the screen. The round buttons get `shrink-0`, the tabs
+`whitespace-nowrap` with 8 px padding; measured: tabs 69-321 px, More ends at 374 px, like the frame.
+
+**A TipTap placeholder that changes later needs a function** (board chat, 2026-10-21): the composer said "Ask your
+board..." while Look mode was on, because TipTap reads `Placeholder.configure({ placeholder })` once, when the editor is
+made, and the chat's data arrives after. The placeholder is now `() => ref.current`; an effect updates the ref and
+dispatches an empty transaction to redraw (setting the extension's option and redrawing did not work). Measured:
+`data-placeholder` read "Ask about factory-scratch..." after the fix. Same trap for any option read at creation.
+
+**Busy rows say who works, and a ring turns while an agent runs** (Board, 2026-10-21, FACTORY-13): under the title a
+row says "the architect is planning · 2 min" or, when it waits for you, "plan ready for you" in the accent colour with
+the title bold and a "4 decisions" pill. The status ring turns slowly (`.af-turn`, linear 3 s, `transform-box: fill-box`
+so an SVG group turns about its own centre), a card that just started glows once (`.af-start`, an inset brand ring that
+fades in 1.2 s); reduced motion stops both and shows a still dot in the ring instead.
+
+**A toast you can open shows its own countdown and pauses under the finger** (New task, 2026-10-21, frame 12): Sonner's
+timer is set to never expire and the toast draws a 3 px line that empties over 6 s; holding a finger on it pauses the
+line (measured: 0 ms of progress in 1 s held), a tap opens the task, a swipe up dismisses it. It is a `role="link"` div,
+not a button, because Sonner starts no swipe on a button.
+
+**Clearing a draft keeps an Undo for 5 s** (board chat, 2026-10-21, frame P2): one tap clears the text and every chip; a
+card says what was cleared with Undo and a bar that drains over 5 s (still with reduced motion), and Undo puts the text
+and the attachments back.
+
 **Information behind an icon opens a bottom sheet** (user, 2026-10-18, like the Claude app): the context ring is only a
 ring; a tap opens a vaul sheet over the bottom of the screen with the numbers (big share, a bar, tokens of window, what
 to do past 80%). Above the board chat panel: overlay `z-[75]`, sheet `z-[80]`.
+
+**A picture opens in a full-height sheet, not a tap-anywhere overlay** (D220, user 2026-10-22, reviewing FACTORY-18's
+screenshots; headless only so far): the old viewer was one full-screen button (a tap anywhere closed it, nothing said so)
+and the page behind still scrolled. Now a vaul sheet from 8 px under the safe area, like Compare attempts: the title and
+a glass X at the top, the picture, its path and "Check: ..." under it; swipe down closes it and vaul holds the page
+behind. Keep the shown item in its own state and close by flipping `open` only, or the sheet goes blank while it slides
+away. On the card: each page once (its newest shot), titled, a page shot before the latest build dimmed with "Before the
+last change", and a "Before you approve, check" list from the agent's check lines.
+
+**Choosing which review findings to fix: a round tick per finding** (D220, same day): the Triage tick (round, brand
+fill, the tick drawn in) on each "Fix before merge" card (ticked) and "Worth a look" row (unticked), a note box, and the
+main button counts them: "Fix 2 selected". The ones left unticked go to the developer as "do not fix, do not raise
+again", so the next review stays quiet about them.
+
+**A prefilled answer box shows all of its text** (start check plan phase 3, 2026-10-25, the Ready to build card): a
+suggested answer in a `rows={2}` textarea was cut after two lines on a phone, and `rows` from the text length still
+cut the longest (measured: 2 of 5 cut at 6 rows). The fix: a ref callback that sets `height: auto` then `scrollHeight +
+2px`, plus the same on `onInput`, because a stable ref callback runs only when the box mounts. Measured at 390 px: 5 of
+5 fit (`scrollHeight <= clientHeight + 1`).
 
 ---
 
@@ -166,6 +230,7 @@ Headless browsers cannot see any of these bugs: no standalone mode, safe areas a
 |---|---|---|---|
 | Dock floats ~100 px too high until the first scroll | iOS 26 + `apple-mobile-web-app-status-bar-style: black-translucent`: the layout viewport is short by the top inset (inner 793 of 852, inset 59) | status bar style `default` + `theme-color` = page background; **reinstall the PWA** (iOS reads it only at Add to Home Screen) | proven |
 | Dock or a bar strands mid-screen after a fast scroll | WebKit repaints fixed layers late | `transform: translateZ(0)` on the fixed bar; no `backdrop-filter` on it | proven |
+| Switches (or any row control) draw over the dock while scrolling | the dock had no z-index, and the row controls set `relative z-10` (a fixed bar with `z-index: auto` loses to any positioned child with z above 0) | give the dock and the Ask button their own layer between content and the bars that replace them: `z-[15]` (content `z-10`, bars that take the dock's place `z-20`, sheet scrims `z-40`). Check: `elementFromPoint` where a scrolled switch meets the dock returns the dock (9 over before, 0 after, at 390x520) | proven headless (stacking is not an inset bug, so headless sees it) |
 | Dock wrong only on short pages | `height: 100%` chains | `min-height: 100dvh` on body, never `height: 100%` | proven |
 | Dock stuck mid-screen after the keyboard closes | phantom keyboard inset | a `ResumeReseat` component that re-seats the layout on resume / blur | proven |
 | A sheet with an input shoots up when you type | Safari scroll-into-view moves a content-height sheet | vaul `repositionInputs={false}`, fixed-height sheet (`h-[85vh]`, not `max-h`), pinned header + one inner scroll, **never `autoFocus`** | proven |
@@ -176,8 +241,11 @@ Headless browsers cannot see any of these bugs: no standalone mode, safe areas a
 | The ⌃ ⌄ ✓ bar above the keyboard | iOS adds it (the "form accessory bar") for every text field in Safari and home-screen web apps; no HTML / CSS / JS setting exists, also not in iOS 26 (checked 2026-10-14: Ionic keyboard docs, Apple Community) | a web app cannot remove it: plan the layout for its 44 pt (section 5, welcome row). Only a native wrapper can: Capacitor `Keyboard.setAccessoryBarVisible({ isVisible: false })` (iOS build needs a Mac + Xcode and an Apple developer account). One text field per screen may drop the arrows, never the ✓ (unverified) | known limit |
 | Keyboard opens and the page zooms | inputs under 16 px | inputs at 16 px or more | proven |
 | A device silently gets no push (opened in a Safari tab, permission blocked, or never subscribed) and nobody notices until an alert is missed | nothing on screen says this device is not subscribed; the server only knows some device is | a board pill from `pushState()` (no `PushManager` = unsupported, `Notification.permission` denied = blocked, no `getSubscription()` = off): "Turn on" calls the subscribe from the tap (iOS asks only from a user gesture), "How" toasts the fix for blocked or unsupported, an x hides it 7 days in `localStorage`. Agent Factory `web/src/lib/push.ts` + `PushBanner` in `Board.tsx` (D186) | headless proven; iPhone granted path owed |
-| Tapping a toolbar button next to a text box (paste a screenshot) closes the keyboard | the tap moves focus from the box to the button, and iOS drops the keyboard on blur | `onPointerDown={(e) => e.preventDefault()}` on the button: the tap never takes focus, the click still runs (Agent Factory board chat paste) | unverified: headless keeps focus even without the fix, so only the iPhone can prove it |
+| "Stop notifications" on a device does not last: pushes come back the next time that device opens the app | the app re-subscribes on open whenever permission is granted (so a rotated iOS endpoint stays live), and `subscribe()` makes a NEW subscription after the old one was removed; that undid both "Stop here" and "Stop there" (found reading the code, 2026-10-21) | the server keeps a list of stopped devices, keyed by a random id the device keeps in local storage (not the endpoint, which iOS can change, and not the user agent, which every update changes); the re-send on open carries `auto: true` and is ignored for a stopped device; only a tap on Allow on that device clears it. Test: `server/app.test.ts` "lists the push devices and stops one" | proven (test) |
+| Tapping a toolbar button next to a text box (paste a screenshot) closes the keyboard | the tap moves focus from the box to the button, and iOS drops the keyboard on blur | `onPointerDown` and `onMouseDown` `preventDefault` on the button, AND focus the box again in the click handler (`box.current?.focus()`, a no-op when it still has focus). preventDefault alone failed on the iPhone (2026-10-20); iOS raises the keyboard only for a focus made inside the tap, so the refocus must be synchronous, before any `await` (Agent Factory board chat paste) | headless: blur the box, click Paste, focus is back in the box with the text kept; the keyboard itself is iPhone only |
+| A finished card still looks like it is loading | the card kept a spinner glyph (lucide `Loader`) after the work ended and only stopped it spinning; a still spinner reads as stuck | show the spinner only while working, then swap to the item's still icon (Agent Factory Triage Intelligence: `Loader` while searching, the list row's `Sparkle` once done) | dev: a done item renders `.lucide-sparkle` and no `.animate-spin` |
 | A link inside a sheet, picker or editor (More models, a task link in a chat) leaves the screen, and Back returns with the sheet closed and what was typed gone | the sheet or box unmounted; its text lived in component state | (1) a picker's "More models" opens one shared sheet over the screen instead of a page (`ModelsSheetHost` in the shell, `modelsSheet.open(h)`), so nothing unmounts; (2) every text box keeps its unsent text in memory per box until sent (`useUnsent(key, initial)`, `lib/unsent.ts`: comment, run and plan chat, Request changes notes, the board chat); (3) a chat link records a one-trip detour that reopens the chat on Back (`agentPanel.detour()`). Agent Factory | proven headless (models sheet over New task and its picker; a comment back after leaving the page; detour test) |
+| A one-finger gesture (Shelf's Highlighter drag) stops working mid-session and the finger only scrolls, until the screen is reopened | the code tracks touching fingers in a map, set on `pointerdown` and cleared on `pointerup` and `pointercancel` of its own element; one lift never reached it (it ended outside the element, or iOS dropped it), so a ghost stayed and every later finger counted as the second one, taking the two-finger scroll path (Shelf, 2026-10-21) | on a pointerdown with `e.isPrimary` (the browser's word that no other pointer of that type is down), delete the stored pointers of the same `pointerType`, and drop the ghost's half-made drag with them. Keep the type check: a palm touch is primary while the Pencil draws | headless: dispatch a `pointerdown`, send its `pointerup` to `document.body`, then a one-finger drag must still create the highlight (Shelf `e2e/reader.e2e.py` `lost_lift_checks`); the real iOS trigger is unknown |
 
 The keyboard fit, as code (`web/src/lib/keyboard.ts`):
 
@@ -255,5 +323,8 @@ How it hid (keep these, each cost a round):
       backdrop-filter, `--dock-bottom` / `--dock-x`, `ResumeReseat`, sheets with inputs per section 5, `useKeyboardFit`
       on any full-height layer with a text box.
 - [ ] Mentions: copy `MentionInput.tsx` (Tiptap) if the app has @.
+- [ ] The six phone defaults on every screen (skeletons on first load, cached data first, hit slop under 44 pt,
+      `one-time-code` inputs, `tabular-nums`, `text-balance` headings): rules and code in
+      `~/.agents/skills/frontend-interaction-patterns/references/phone-defaults.md` (added 2026-10-26).
 - [ ] Feel-check on the real iPhone: play suspicious motion at slow speed in Safari's Web Inspector, look again the
       next day.

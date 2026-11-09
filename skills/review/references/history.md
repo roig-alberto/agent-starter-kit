@@ -52,3 +52,9 @@ The user asked for skills that name no agent where any agent is meant. The repo 
 `review-diff --context <what was asked> --context CLAUDE.md`. "Codex without subagents" became "an agent or
 harness without subagents". `review-diff` stays: it is a shell command any agent can run, and its reviewer being
 Claude is a fact, not a preference.
+
+## 2026-10-26: the redesign trigger and the realistic threat
+Agent Factory D250 (a guard putting back a check step's leftovers) took ten Opus review-diff passes; seven found
+a new way to delete the user's files, each in recovery logic added by the previous fix. The review was run as raw
+`review-diff` without loading this skill, so "One pass, then stop" was never read. Ended by a redesign (clean
+start, never delete). Added: two Must fix in a row in one area means redesign; name the realistic threat.

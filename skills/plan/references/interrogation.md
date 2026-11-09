@@ -5,10 +5,10 @@ Most feature requests arrive underspecified, so find the gaps before they become
 
 ## How to interrogate
 
-Run the questions through `grill-me`: one plain-word question per message, a recommended answer with
-each, worded so "yes" takes the recommendation, and facts looked up by you rather than asked. The
-AskUserQuestion tool can carry up to 4 questions per call; that is a tool limit, NOT a budget, and the
-user's standing rule is one question at a time. Ask as many rounds as needed. The user's standing
+Run the questions through `grill-me`: rounds that ask every decision answerable now, each a plain-word
+question with a recommended answer, worded so "yes" takes the recommendation, and facts looked up by you
+rather than asked. The AskUserQuestion tool can carry up to 4 questions per call; that is a tool limit,
+NOT a budget. Ask as many rounds as needed. The user's standing
 preference is to over-clarify rather than rebuild: there is no cap on total questions, and understanding,
 never a count, is the stopping condition. Do not move on until you are confident you understand the full
 picture.
@@ -50,7 +50,7 @@ The most important questions are the ones the user did not think to answer:
   - The alert path itself: a failed notice is silent unless something checks it. On this box `tg-alert`
     failed for weeks from a file permission before anyone noticed.
 - This box's own traps (each one has cost real time here):
-  - Time: the Europe/Madrid zone and its clock change; timers drift on WSL2 (the node-cron facts are in
+  - Time: the Europe/Madrid zone and its clock change; timers drifted on the old WSL2 host, and node-cron still needs an explicit tolerance (the facts are in
     `~/.claude/ENVIRONMENT.md`); a run that fell due while the server was down is caught up or skipped, by choice.
   - Where a write lands: in apps whose dev and prod share one database (FLEET.md "Database:" per app), a dev write is a prod write.
     How is it proven without touching real data (skill `testing`)?
@@ -69,6 +69,9 @@ The most important questions are the ones the user did not think to answer:
 - Security: injection, secrets handling, PII, rate limiting, audit trails.
 - Testing strategy: what proves this actually works, and at what level (unit, integration, e2e)?
 - Rollout and rollback: a feature flag? the migration order? can it be undone safely?
+- Anything that undoes, deletes or restores files or state: can it fail closed and move aside instead of
+  delete, and can a clean start remove the need to tell the user's changes from the code's? Recovery paths
+  (retry, restart, a half-done undo) are where it loses the user's work.
 - Usability fit: is this the *simplest* thing that works for how often the app is actually used? An
   infrequently used app rewards an effortless flow over a powerful but fiddly one, so weigh every new
   control against the cost of relearning it on each visit.

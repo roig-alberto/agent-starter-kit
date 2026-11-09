@@ -18,7 +18,7 @@ HOME = os.path.expanduser("~")
 SKILLS = os.environ.get("SKILLS_DIR") or os.path.join(HOME, ".agents", "skills")  # SKILLS_DIR: a task worktree (Agent Factory)
 CLAUDE = os.path.join(HOME, ".claude")
 TOP_DOCS = ["RULES.md", "ENVIRONMENT.md", "RTK.md", "CLAUDE.md", "HARVEST.md", "INSTALL.md",
-            "PROMPT-GUIDE.md", "MODEL-MIGRATION.md"]
+            "PROMPT-GUIDE.md", "MODEL-MIGRATION.md", "RULES.bitter-lesson.md"]
 DESC_MAX = 800
 BODY_MAX = 150
 STAMP_DAYS = 90
@@ -257,8 +257,19 @@ def check_memories():
             err(index_path, f"index points at missing {f}")
 
 
+def check_bitter_lesson():
+    """Bitter-lesson marks match their side-file rows (BITTER-LESSON-PLAN.md). No allowlist: skipped."""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import bitter_lesson
+    from pathlib import Path
+    entries, problems = bitter_lesson.check_all(Path(CLAUDE), Path(SKILLS))
+    for p in problems:
+        path, _, msg = p.partition(": ")
+        err(path, f"bitter-lesson: {msg}")
+
+
 def main():
-    skill_dirs = sorted(d for d in glob.glob(os.path.join(SKILLS, "*")) if os.path.isdir(d)
+    skill_dirs =sorted(d for d in glob.glob(os.path.join(SKILLS, "*")) if os.path.isdir(d)
                         and os.path.basename(d) != "synced")
     names = [os.path.basename(d) for d in skill_dirs]
     meta = {os.path.basename(d): check_skill(d, names) for d in skill_dirs}
@@ -270,7 +281,8 @@ def main():
     check_live_facts()
     check_harvest()
     check_memories()
-    quiet = "--quiet" in sys.argv
+    check_bitter_lesson()
+    quiet ="--quiet" in sys.argv
     for e in errors:
         print(f"ERROR {e}")
     if not quiet:

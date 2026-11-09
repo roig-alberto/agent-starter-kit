@@ -40,13 +40,18 @@ and an approval that hides what nobody checked.
    Done when: the reviewer's output is back.
 4. **Verify every finding against the files.** A reviewer's finding is a lead, not a verdict. Open the
    cited line, confirm or disprove it, and run a focused check when that settles it (for code, the test
-   check in `references/code.md`). For each confirmed finding, grep its bug class for other instances and
-   fix them in the same change.
-   Done when: each finding is marked confirmed or dismissed with a one-line reason.
+   check in `references/code.md`). Then fix every confirmed finding in the same change, Could fix included,
+   with its narrowest check, and grep its bug class for other instances to fix too. Leave a confirmed
+   finding unfixed only when it needs the user's decision (ask, with a recommendation), sits in lines the
+   change did not touch (Pre-existing below), or its fix would grow the scope the user set (ask). A known,
+   fixable gap in a report is unfinished work, not a finding.
+   Done when: each finding is marked fixed (with its check's output), dismissed with a one-line reason, or
+   left with one of those three reasons.
 5. **Report.** In this order:
-   1. **Act on**: at most 5 confirmed items, by priority then confidence, each with the place, the problem,
-      what triggers it and what the person sees, and the fix.
-   2. **Also confirmed**: confirmed findings past the first 5, one line each.
+   1. **Fixed**: each confirmed finding fixed in step 4, by priority, with the place, what triggered it and
+      what the person saw, and the check that now passes.
+   2. **Left**: each confirmed finding not fixed, with which of the three reasons in step 4 holds; a
+      decision for the user carries the options and a recommendation.
    3. **Pre-existing**: confirmed bugs in lines the change did not touch, one line each. They never block
       the verdict; file each to Triage (or HARVEST outside a board repo) instead of fixing it here.
    4. **Dismissed**: every disproved finding with its one-line reason, so the user can overrule it.
@@ -73,6 +78,11 @@ and an approval that hides what nobody checked.
   or an evidence rule), committed before the next review, so the reviewer stops raising it.
 - **One pass, then stop.** Each fix adds code, and a judgment-based review finds something new every run;
   re-review only the fix, never loop until clean.
+- **Two Must fix in a row in one area means the design is wrong.** Stop patching that area: write the
+  simplest design that removes the whole class (fail closed, move aside instead of delete, a clean start)
+  and take it to the user before more code. Patches on patches took ten passes on one feature (2026-10-26).
+- **Name the realistic threat in the reviewer's context** (a helpful formatter or agent, a crash, the user's
+  own edits; not a hostile one unless the code faces one), so findings are weighed against it.
 
 ## Gotchas
 

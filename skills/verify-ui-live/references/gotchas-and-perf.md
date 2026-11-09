@@ -24,22 +24,9 @@ First-visit spikes of 25-50s with warm repeats dropping to low seconds = on-dema
 compilation, the normal dev tradeoff. Fixes, in order of leverage: **(1)** a production
 build eliminates on-demand compilation entirely (best when the user just wants the app
 to feel fast to *use*; costs the instant hot-reload loop); **(2)** keep the dev loop but
-cut compile time - the repo must live on the WSL2 Linux filesystem, not `/mnt/c`.
-
-**Historical (`/mnt/c` era, now done - apps live in `~/projects/*`):** the old layout
-paid two extra taxes: the `./:/app` bind mount spanned the Windows→Linux boundary (slow
-I/O reading thousands of module files) and `WATCHPACK_POLLING: "true"` polled
-continuously (steady CPU). On WSL-native paths, native inotify works - omit polling.
-Observed on Aro, 2026-07-03.
-
-## Turbopack does not hot-reload across a /mnt/c bind mount
-
-`WATCHPACK_POLLING` is **webpack-only**; Turbopack's watcher gets no events across a
-Windows bind mount and has **no polling fallback**, so it serves stale cached modules
-and hot-reload silently stops. Verified on finance-proj (Next 15.5.20): the edit reached
-the container's file, Turbopack even logged "✓ Compiled", yet served OLD content on a
-full navigation. On a Windows-mounted repo, prefer `next dev` (webpack). Irrelevant on
-WSL-native paths.
+cut compile time - keep the repo on the native Linux filesystem in `~/projects/*`, where
+inotify works, and omit `WATCHPACK_POLLING`. The older Windows-mount history is in
+`references/history.md`.
 
 ## Screenshots time out during a hot-reload update (extension-era)
 
@@ -50,8 +37,7 @@ render a fresh page load, unaffected by HMR-in-flight.
 
 Edit a visible string (e.g. an `<h1>`), wait ~6-8s for the recompile, then re-read that
 element's `textContent` **in the same tab without navigating**. If it changed on its
-own, HMR is live through the tunnel (Cloudflare proxies the HMR WebSocket). Revert the
-marker - it should revert live too.
+own, HMR is live on localhost. Revert the marker - it should revert live too.
 
 ## File-upload flows (updated 2026-07-06)
 
@@ -61,17 +47,17 @@ The old parked-tab workaround (extension-era) is archived in
 
 ## "Can't access it" → check DNS/host first
 
-Before assuming a tunnel/app bug, confirm the public hostname actually **resolves** and
-that `BASE_URL` matches the live host - a stale/typo'd host is
-`DNS_PROBE_FINISHED_NXDOMAIN` and looks exactly like "can't access". Seen on
-finance-proj: `BASE_URL=caudal.example.com` was NXDOMAIN; real host was
-`budget.example.com`. Also verify the dashboard hostname targets the intended service
-(`web:3000` dev vs `web-prod:3000`).
+Before assuming a sidecar/app bug, confirm the tailnet hostname actually **resolves**
+(compare it with `~/.claude/FLEET.md`) and that `BASE_URL` matches the live host - a
+stale/typo'd host is `DNS_PROBE_FINISHED_NXDOMAIN` and looks exactly like "can't
+access" (a real case is in `references/history.md`). Also verify the serve target is the
+intended service: `docker exec <app>-tailscale-prod-1 tailscale serve status` should
+show `web-prod:3000`.
 
-## A caching service worker silently breaks tunnel hot-reload
+## A caching service worker silently breaks hot-reload
 
 If the app's SW caches `_next/static` (cache-first / stale-while-revalidate), serving
-the **dev** container through the tunnel makes it serve **old `next dev` chunks** (same
+the **dev** container to a browser that keeps the SW makes it serve **old `next dev` chunks** (same
 paths, new content) → stale UI that looks like "my changes aren't deploying".
 Tell-tale: fresh on a just-loaded browser but stale on the installed PWA / another
 device. Fix: keep the SW **no-cache** (install + push + share-target only, no `fetch`
@@ -96,9 +82,9 @@ is self-gating: a prod `next build` serves content-hashed chunks with
 `Cache-Control: public, max-age=31536000, immutable` → cached, and a code change yields
 a new URL, so a stale chunk is impossible. `next dev` serves unhashed files with
 `no-store, must-revalidate` (no `immutable`) → gate skips → nothing cached in dev →
-tunnel hot-reload stays fresh. One SW file works for both containers; no
-`NODE_ENV`/hostname branch needed (the tunnel hostname is identical for dev and prod - 
-the header can distinguish them, the hostname can't). **Verify against both live
+hot-reload stays fresh. One SW file works for both containers; no
+`NODE_ENV`/hostname branch needed (the header can distinguish them reliably, a hostname
+check cannot). **Verify against both live
 containers before shipping:** grab an asset via
 `wget -qO- http://localhost:3000/login | grep -oE '/_next/static/[^"]+\.js'`, then
 `wget -S` it on the prod container (expect `immutable`) and the dev container (expect
@@ -197,7 +183,8 @@ half doesn't apply to our Python one-liners.
 showing the login screen.** Reads as "the app is healthy". Cause: the session cookie is
 `Secure`, and Chrome only stores `Secure` cookies on a secure origin. `localhost`
 counts; `http://172.20.0.x:3000` does not. This is the DEFAULT case when verifying prod
-on this fleet, because prod is tunnel-only with no host port.
+on this fleet, because prod has no host port. The tailnet HTTPS hostname is a secure
+origin, so a `--login` against it should keep the cookie (inferred, not yet measured).
 
 Two things that work - pull the cookie by hand, or verify against the dev container:
 
@@ -248,6 +235,19 @@ The call and its arguments land in the transcript. Use `ui-check --login` (it re
 itself), or make the view reachable by URL. On caudal the deep link turned out to be the better
 product anyway - a view worth verifying is usually a view worth linking. (2026-09-01)
 
+## A visible browser exists since 2026-10-27, and only WebGL needs it
+
+The host has a desktop and Xvfb. Run a visible browser with `xvfb-run -a <cmd>` and `headless=False`:
+no window appears on the user's screen. `DISPLAY=:0` does show one, so ask before using it. Chromium and
+Chrome also need `args=["--ozone-platform=x11"]` when the shell runs inside the user's desktop session
+(`XDG_SESSION_TYPE=wayland`): without it Chrome goes to the desktop's Wayland screen instead of Xvfb and
+Playwright's launch times out; unsetting `WAYLAND_DISPLAY` is not enough (measured 2026-10-29, Chrome 156). Measured
+2026-10-27, headless against visible, in Chromium, Chrome 156 and WebKit: drag, touch drag, swipe and
+`env(safe-area-inset-*)` (still 0) behave the same. The one difference: headless WebGL runs on
+SwiftShader (software), while a visible Chromium or Chrome, Xvfb included, gets the Intel Arc GPU
+(Mesa). WebKit reports `Apple GPU` either way, a masked placeholder. iOS-only paint bugs still need
+the phone: Playwright's WebKit is WebKitGTK, not Safari.
+
 ## Headless WebGL2 parity gate (Playwright)
 
 Driving real WebGL2 headlessly needs system Chrome with
@@ -266,26 +266,28 @@ output == server output. **Test only the new seam.** (glow, 2026-08-12)
   races hydration). Trust the DOM eval; for a real pixel shot use `chrome-devtools-axi screenshot`.
 - **Deleting a component file still in Turbopack's module graph 500s EVERY route** ("Failed to read
   source code") until the dev web container restarts. Stale cache, not a regression; prod builds clean.
-- **`chrome-devtools-axi` opens at DESKTOP width.** `resize 390 844` before measuring phone layout.
+- **`chrome-devtools-axi` opens at DESKTOP width, and `resize 390 844` does not change the page's viewport.** Use
+  `emulate --viewport "390x844x3,mobile,touch"` and check with `eval "innerWidth"`. After `start` no page is selected:
+  `pages` then `selectpage <id>`. Parallel agents need `CHROME_DEVTOOLS_AXI_SESSION=<name>`.
   Log in first with `eval` + a `fetch('/api/auth/login', {method:'POST', ...})` from the page, then `open`.
 
 ## The one-line gotcha list (moved from SKILL.md)
 
 - **Auth:** browser already has a session cookie; curl/`ui-check --login` must log in. Never hardcode the password. **Login path is app-specific** - Caudal is `/api/login`, the examples above use Aro's `/api/auth/login`; grep the app's `app/api` if a login 401s.
-- **Same-container truth:** never spin up a second dev server - verify against the container the tunnel serves.
+- **Same-container truth:** never spin up a second dev server - verify dev on localhost and prod on the tailnet hostname.
 - **Screenshots**: `ui-check --shot` renders a fresh load (HMR-in-flight doesn't affect it) - but prefer measurements; images cost ~1-2k tokens to view.
 - **Hot-reload E2E check:** edit a visible string, wait ~6-8s, re-read `textContent` in the same tab without navigating; revert after.
 - **File-upload flows:** drive headlessly - Playwright `set_input_files()` with a fixture/on-disk export (ad-hoc script via Bash). The old parked-tab workaround is legacy (`references/chrome-extension-legacy.md`).
 - **`ui-check` CANNOT verify a DB write.** Headless tears the browser down before an async Next
   server-action POST lands, so it only ever proves optimistic client state. Write-path E2E → Playwright
   MCP (needs `npx playwright install chrome` once; the MCP is pinned to the chrome channel). 2026-07-10, personal-dash, after two dead-end ui-check click attempts.
-- **Next 16 dev: hydration silently DIES on any origin missing from `allowedDevOrigins`** (`next.config.ts`). SSR looks perfect but nothing is interactive - buttons take native focus yet have no React fiber/`__reactProps`. The only clue is a `ws://…/_next/webpack-hmr` handshake error in the console (easy to dismiss as HMR noise). Cause: the config listed only the tunnel host, so loading via `127.0.0.1:<port>` (the ui-check/Playwright path) was cross-origin-blocked. **List EVERY dev origin incl. `localhost` AND `127.0.0.1`** - fleet-wide for every Next-16 app verified at localhost. Cost ~15 min (recall, 2026-07-10).
+- **Next 16 dev: hydration silently DIES on any origin missing from `allowedDevOrigins`** (`next.config.ts`). SSR looks perfect but nothing is interactive - buttons take native focus yet have no React fiber/`__reactProps`. The only clue is a `ws://…/_next/webpack-hmr` handshake error in the console (easy to dismiss as HMR noise). Cause: the config listed only the public host, so loading via `127.0.0.1:<port>` (the ui-check/Playwright path) was cross-origin-blocked. **List EVERY dev origin incl. `localhost` AND `127.0.0.1`** - fleet-wide for every Next-16 app verified at localhost. Cost ~15 min (recall, 2026-07-10).
 - **Turbopack dev caches a failed resolution and emits stale `require is not defined`** after heavy hot-reloading (recall 2026-07-11: both detail pages 500'd after ~15 edits, looked like a real regression). Don't debug the code - `docker compose restart web` first when a page 500s with `require is not defined` or a stale "Can't resolve".
 - **A boot splash steals your screenshots.** closet's `#splash` (hides on a `ready` event or a 7s fallback) sits over everything, and `wait_for_selector(".target")` fires early because the target is already ATTACHED behind it. Wait on the splash instead: `page.wait_for_selector("#splash", state="detached")`. (`elementFromPoint` checks also mis-fire - `#splash` is an id with an empty `className`.) Cost ~3 wasted iterations, 2026-07-13.
 - **Self-signed HTTPS dev origins** (closet `https://localhost:5173`) fail headless Chrome with `ERR_CERT_AUTHORITY_INVALID`. For axi set `CHROME_DEVTOOLS_AXI_CHROME_ARGS="--ignore-certificate-errors"` BEFORE `start` (unproven here). Proven workaround: drive the uv-playwright interpreter directly with `chromium.launch(args=['--ignore-certificate-errors'])` + `new_context(ignore_https_errors=True)`. 2026-07-13.
-- **"Can't access it":** check DNS/hostname + `BASE_URL` first (NXDOMAIN looks identical to a down app), then the tunnel's origin target.
+- **"Can't access it":** check DNS/hostname + `BASE_URL` first (NXDOMAIN looks identical to a down app), then the sidecar's `tailscale serve status` target.
 - **Stale UI / "changes aren't deploying":** a caching service worker; keep the SW no-cache in dev, or gate caching on the `immutable` response header. Installed PWAs need a one-time re-add after the fix.
-- **iOS:** HTTPS via Cloudflare is what enables PWA install + Web Push; `navigator.vibrate` unsupported - don't promise haptics.
+- **iOS:** HTTPS on the tailnet hostname (`tailscale serve --https=443`) is what enables PWA install + Web Push; `navigator.vibrate` unsupported - don't promise haptics.
 - **You CAN screenshot - never tell the user you can't.** `ui-check --shot` and `chrome-devtools-axi screenshot <path>` both render on the box; use one and `SendUserFile` the PNG. The only real limit is a device-specific *rendering condition* headless Chromium can't reproduce (see next).
 - **Safe-area insets don't exist headlessly.** Headless/desktop Chromium reports `env(safe-area-inset-*)` = **0**, so an iOS home-indicator / notch bug (a `viewport-fit=cover` fixed bottom bar mis-centering, etc.) will NOT show in a `ui-check`/Playwright screenshot - it looks fine there and only breaks on the real phone. To verify such a bug without the phone: **simulate the inset** by injecting the padding in the browser (`el.style.paddingBottom='34px'`) and assert the geometry (e.g. icon-block center == row center), then have the user confirm on the phone. Don't conclude "looks fine" from a headless shot for safe-area layout. (2026-07-11: recall bottom-nav centered on desktop, crammed on iPhone - this was why.)
 - **A green headless measurement is NOT proof against a phone-reported bug - and it will argue with you.** WebKit-only paint bugs (a `fixed` bar that strands mid-document on a long page, or rides up under `backdrop-filter`) measure IDENTICALLY in Chromium before and after the fix, so the check passes in the broken state too. When the user reports it on-device, take the phone screenshot; treat headless as unable to falsify. Order of operations: verify what headless CAN prove (functional offline/SW install, precache contents, shell render, DOM geometry) BEFORE spending a device round-trip; then send the device-only cosmetics to the phone. Fixes + causes for these traps: `frontend-interaction-patterns` → `references/ios-layout-traps.md`. (2026-07-16 recall, 2026-07-20 superhuman-mvp.)

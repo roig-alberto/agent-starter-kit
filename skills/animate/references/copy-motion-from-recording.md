@@ -18,7 +18,22 @@ the feel wrong; every value here comes from a measured frame. The incidents behi
    FF=$(uvx --with imageio-ffmpeg python -c "import imageio_ffmpeg as f; print(f.get_ffmpeg_exe())")
    ```
 
-3. **Extract the native frames, never a resampled copy.** Keep every frame exactly as recorded, with its
+3. **First read the recording as contact sheets** (what happens, in what order, which labels appear), before
+   measuring anything. One image shows the whole clip; a second, denser one shows the moment that matters:
+
+   ```bash
+   "$FF" -hide_banner -i rec.mp4 2>&1 | grep -E "Duration|Video"                 # length and size
+   "$FF" -v error -i rec.mp4 -vf "fps=2,scale=480:-1,tile=4x4" -frames:v 1 sheet.jpg      # the whole clip
+   "$FF" -v error -ss 7.5 -t 2.4 -i rec.mp4 -vf "fps=5,crop=250:150:60:105,tile=6x2" -frames:v 1 moment.jpg
+   ```
+
+   Pick `fps` so the sheet holds the clip (16 cells at fps=2 covers 8 s), crop to the phone or the one tile
+   that moves, and zoom (crop then scale up) until on-screen labels are readable: a cursor's label ("Moving to
+   highlight", then "Moving device") names the phases of the motion better than any measurement. Read the sheets,
+   write down the sequence in plain words, and only then measure the moments that need exact values (steps 4-6).
+   Worked example: Lumo's `docs/MOTION.md` rows M24-M34 were read this way from six recordings (2026-10-21,
+   kept in `~/projects/lumo/ui/refs/`).
+4. **Extract the native frames, never a resampled copy.** Keep every frame exactly as recorded, with its
    own timestamp (`pts_time` from `showinfo`):
 
    ```bash
@@ -29,13 +44,13 @@ the feel wrong; every value here comes from a measured frame. The incidents behi
 
    Scale to 393 px wide (1 px = 1 pt) for positions and sizes; extract a second set at full resolution
    for colours.
-4. **Find the moments.** Compute the mean absolute difference per screen region (header, middle, bottom)
+5. **Find the moments.** Compute the mean absolute difference per screen region (header, middle, bottom)
    between consecutive frames; the spikes are where something moves.
-5. **Measure per frame.** Take the bounding box of what changed against a rest frame: its size gives the
+6. **Measure per frame.** Take the bounding box of what changed against a rest frame: its size gives the
    scale, its position gives the origin. Take the brightest pixel in a box for a text or rim colour, and
    sample a fill mid-body, not near rounded ends (the corner radius shortens the column). Contrast-boost a
    few frames to see subtle things (whether the page really dimmed, whether a small overshoot happened).
-6. **Turn the numbers into motion.**
+7. **Turn the numbers into motion.**
    - Origin of a scale: with `left(s) = xo + (left_final - xo) * s` on two frames, solve for `xo`.
    - A spring: fit damping, frequency and start scale to the measured points (a small grid search), then
      sample the fitted curve into a CSS `linear()` easing (33-37 points).
@@ -43,7 +58,7 @@ the feel wrong; every value here comes from a measured frame. The incidents behi
      keyframes with `linear` between them, played with WAAPI.
    - Write the measured timeline as a table (phase, theirs, ours) next to the code, so the next pass
      compares numbers, not impressions.
-7. **Measure our copy the same way before asking for a phone check.** In a headless browser, sample
+8. **Measure our copy the same way before asking for a phone check.** In a headless browser, sample
    computed styles every animation frame (a `requestAnimationFrame` loop reading `getComputedStyle`) and
    compare the numbers row by row with the recording's table. Only then ask the user to feel it on the
    phone, and record which items are matched headless but not yet felt on a device.

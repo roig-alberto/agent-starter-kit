@@ -79,7 +79,10 @@ the curated few that shape code.
 
 - **Keep each file short: ARCHITECTURE.md under about 450 lines with its ADRs, GLOSSARY.md and CODEMAP.md under
   about 200, REVIEW.md under about 60.**
-  They are read on every cold start, so length is a cost on every task.
+  They are read on every cold start, so length is a cost on every task. Over the limit, trim the wording and never
+  remove content: shorten the longest ADRs and move fine detail (caps, timeouts, per-run figures) into the
+  decision-log entries they cite, but keep every decision, alternative, cost, "would change if" and cited ID (diff
+  the cited IDs before and after; one trim lost one).
 - **Point at files, never copy code or schemas.** A copy drifts; a path fails the check when it moves.
 - **Update in the same change that breaks them.** A change to ownership, stored data, a trust boundary,
   deployment, a main folder or a domain word updates the matching file in the same commit (a new system rule

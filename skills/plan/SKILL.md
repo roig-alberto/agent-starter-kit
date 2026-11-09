@@ -24,7 +24,7 @@ prevents wasted work, a hidden decision that an implementing agent guesses, and 
 
 ## Steps
 
-1. **Interrogate.** Run `grill-me` for the questions: one plain-word question at a time, a recommended
+1. **Interrogate.** Run `grill-me` for the questions: rounds of plain-word questions, a recommended
    answer with each, facts looked up by you, decisions asked of the user. Seed it from the checklist in
    `references/interrogation.md` and scan the whole list every time, because the dangerous gaps are the
    ones nobody is thinking about.
@@ -45,7 +45,7 @@ prevents wasted work, a hidden decision that an implementing agent guesses, and 
    in `references/plan-format.md`. Read `CODEMAP.md` and `ARCHITECTURE.md` first when the repo has them, and
    add a phase task to update them when the plan moves ownership, data, a boundary or a main folder.
    For a hand-off plan or one with three or more phases, then run `review` on the plan file and settle
-   each Act on item (fix it, or take it to the user as a decision) before step 5.
+   every confirmed finding (fix it, or take it to the user as a decision) before step 5.
    Done when: the file exists, every phase passes the two-reader check in `references/plan-format.md`,
    and a required plan review ended in `Approve`.
 5. **Get explicit approval before any code.** Show the phase titles with their "What are we building?"

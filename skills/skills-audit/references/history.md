@@ -82,3 +82,7 @@ audit verified. Offer commits at the end.
 ## 2026-10-16: frontmatter fixed for the validator
 
 Removed what failed `quick_validate`: in new-app the Claude-only `argument-hint: "One-line description of the project to build"`; in skills-audit `disable-model-invocation: true` (the user never types skill names, so a hidden skill never runs); in create-verification-skill the angle brackets in the description (`.claude/skills/verify-<app>/` is still in the body).
+
+## 2026-10-27: dev-system moved
+
+Step 2 ran `python3 ~/projects/dev-system/harvest/context-budget.py` on the WSL host. On native Ubuntu the script is at `~/projects/dev-system/harvest/context-budget.py`.

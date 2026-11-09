@@ -37,3 +37,12 @@ templates.
 ## 2026-10-16: frontmatter fixed for the validator
 
 Removed what failed `quick_validate`: in new-app the Claude-only `argument-hint: "One-line description of the project to build"`; in skills-audit `disable-model-invocation: true` (the user never types skill names, so a hidden skill never runs); in create-verification-skill the angle brackets in the description (`.claude/skills/verify-<app>/` is still in the body); in new-app the trigger "bootstrap <name>" became "bootstrap my-app" for the same reason.
+
+## 2026-10-27: Tailscale sidecar replaces the Cloudflare tunnel
+
+The host moved to native Ubuntu and Cloudflare was removed entirely (user: "everything in Tailscale"). Step 8
+was "Tunnel and Access": a per-app `cloudflared` container (profile `prod`, `TUNNEL_TOKEN`) on `example.com`
+behind a Cloudflare Access policy. It is now a Tailscale sidecar copied from `~/projects/recall/docker-compose.prod.yml`.
+The WSL2 rules (code never under `/mnt/c`, self-heal after `wsl --shutdown`) went with the host. At the time of
+this edit the dev-system templates still carried `cloudflared-prod`, so step 8 says to replace it.
+The dev-system path in the opening paragraph was `~/projects/dev-system/bootstrap/` on the WSL host; it is now `~/projects/dev-system/bootstrap/`.

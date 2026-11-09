@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Generate FLEET.md + fleet.json: the single source of truth for live fleet facts.
 
-Reads the running system (docker inspect, cloudflared ingress logs, tailscale serve,
-host listeners) and writes ~/.claude/FLEET.md and ~/.claude/fleet.json. Docs link here
+Reads the running system (docker inspect, tailscale serve, host listeners; cloudflared
+ingress logs only if a cloudflared container runs, none since 2026-10-27) and writes ~/.claude/FLEET.md and ~/.claude/fleet.json. Docs link here
 instead of restating ports, containers, images, volumes, or hostnames.
 
 Files are rewritten only when the facts change, so the Stop hook can run this every
@@ -184,8 +184,8 @@ def render(facts, stamp):
     out = [
         "# FLEET.md - live fleet facts (GENERATED, do not edit)",
         "",
-        f"Generated {stamp} by `~/.claude/scripts/fleet-facts.py` from `docker inspect`, cloudflared",
-        "ingress logs, `tailscale serve status`, and `ss -ltn`. Regenerate: `python3 ~/.claude/scripts/fleet-facts.py`.",
+        f"Generated {stamp} by `~/.claude/scripts/fleet-facts.py` from `docker inspect`, `tailscale serve status`",
+        "and `ss -ltn`. Regenerate: `python3 ~/.claude/scripts/fleet-facts.py`.",
         "Docs point here; they never restate a port, container, image, volume, or hostname.",
         "Policy (port ranges, reserved ports, why) lives in `fleet-ops` `references/port-registry.md`.",
         "",

@@ -18,32 +18,32 @@ declaring victory, and being wrong. Every step produces evidence before code cha
 
 ## Steps
 
-1. **Build the red command before any theory.** Reproduce the failure the way the user hits it (the real
+1. **Build the red command before any theory.** [bl: invariant] Reproduce the failure the way the user hits it (the real
    request, container, browser width), as one command you can rerun unattended: a failing test, a curl, a CLI
    call against a fixture, a headless browser script. Ways to build one, and how to make it **tight** (fast,
    deterministic, asserting the user's exact symptom): `references/feedback-loops.md`. A destructive trigger
    (delete, overwrite, cascade) runs on a throwaway record, never a real row (see `testing`). If you cannot
    build it, say so, list what you tried, and ask the user for an artifact or access; do not theorize.
    Done when: you have run the command once, it shows the user's symptom, and you can paste its invocation.
-2. **Read the error verbatim, then minimize.** Quote the actual message, line and exit code from the terminal,
+2. **Read the error verbatim, then minimize.** [bl: soft] Quote the actual message, line and exit code from the terminal,
    never from memory; a silent no-op is itself a finding, so make it loud in step 4. Cut inputs, steps and
    config one at a time, rerunning the red command after each cut.
    Done when: every remaining element is load-bearing (removing any one turns the command green).
-3. **Rank 3 to 5 guesses before testing any.** One guess anchors on the first plausible idea. Write each as a
+3. **Rank 3 to 5 guesses before testing any.** [bl: soft] One guess anchors on the first plausible idea. Write each as a
    prediction: "If X is the cause, changing Y makes the bug disappear." A guess you cannot phrase that way is
    a vibe; drop it. Show the ranked list to the user, who may re-rank it at once; do not block if they are away.
    Done when: the list is in the reply, ranked, each with its prediction.
-4. **Instrument one prediction at a time.** Probe the boundary that separates two guesses: a debugger, a
+4. **Instrument one prediction at a time.** [bl: soft] Probe the boundary that separates two guesses: a debugger, a
    targeted log, `docker logs`, `--verbose`, a curl, a DOM measurement. Tag every temporary log with one
    prefix such as `[DEBUG-a4f2]`, so cleanup is one grep. Never change two things in one run. When lost,
    bisect: `git bisect`, half the input, half the code, or last-known-good plus re-adding.
    Done when: one guess survives and the others are falsified by output you can quote.
-5. **Fix the root cause, test-first where a correct seam exists.** Turn the minimized repro into a failing
+5. **Fix the root cause, test-first where a correct seam exists.** [bl: invariant] Turn the minimized repro into a failing
    test at a seam that exercises the real bug pattern; watch it fail, fix, watch it pass. A seam too shallow
    for the bug gives false confidence: then record "no correct seam" as a finding. A fix that does not explain
    the evidence (why THAT error, why THERE) is a symptom patch; keep digging.
    Done when: the regression test passes, or the missing seam is written down.
-6. **Prove it and clean up.** Rerun the step 1 red command on the original scenario and show it green. Remove
+6. **Prove it and clean up.** [bl: invariant] Rerun the step 1 red command on the original scenario and show it green. Remove
    every tagged log (`grep -rn "DEBUG-a4f2"` prints nothing) and throwaway harness. Close out with five parts:
    the root cause, the decisive evidence lines, the fix (files), the regression test or why none, and the green
    rerun. Name the guess that proved right in the commit message.
@@ -53,7 +53,7 @@ declaring victory, and being wrong. Every step produces evidence before code cha
 kept only if the number improves, and every attempt goes in a log so a failed idea is not retried. Read
 `references/performance.md` before changing code for speed.
 
-## Rules: label every claim by evidence
+## Rules: label every claim by evidence [bl: invariant]
 
 - **Direct:** you observed it and cite it (the output line, the file and line, the query result). Only this
   label can carry "fixed" or "the cause is".
@@ -65,7 +65,7 @@ kept only if the number improves, and every attempt goes in a log so a failed id
 - **A guess embedded in the user's question is a candidate to test, not a conclusion.** "Is it the cache?"
   gets a falsifying check like any other guess.
 
-## Rules: pick the layer with a read
+## Rules: pick the layer with a read [bl: invariant]
 
 - **"X only updates when I reload / after I leave and come back": read the store first.** Fetch the row and its
   `updated_at`/`synced_at` (`docker exec <db> psql -c "select …"`). A fresh row with a stale screen is a CLIENT
@@ -77,7 +77,7 @@ kept only if the number improves, and every attempt goes in a log so a failed id
 - **"The delete/stop button does nothing": count the rows before touching the client.** N rows where there
   should be 1 means the creator lacks de-dup (fix with a single-session guard), never the deleter.
 
-## Rules: redact
+## Rules: redact [bl: invariant]
 
 Before showing a command, output or captured artifact, replace every secret with `<REDACTED>`. Build loops on
 environment variables, so a credential stays in the environment and never in what you show. Quote only the
@@ -87,22 +87,25 @@ lines that carry the signal; captured requests carry auth headers.
 
 - **Container apps:** `docker logs <container> --tail 120`, `docker ps -a` (running or restart-looping?) and
   `docker compose config`. Container names are in `~/.claude/FLEET.md`.
-- **UI issues on tunneled apps:** measure the real DOM with `verify-ui-live` instead of eyeballing it.
-- **"Can't access it":** DNS and the hostname first (`NXDOMAIN` looks identical to a down app), then the tunnel
-  origin target, then the container. See the `verify-ui-live` gotchas.
+- **A long log:** find the first error line and its time, then read every level, not only errors, from about 5
+  minutes before to 10 after it (`rtk proxy docker logs <c> --since <t-5m> --until <t+10m> 2>&1`). An empty log or the
+  wrong container means unknown, never healthy.
+- **UI issues on tailnet apps:** measure the real DOM with `verify-ui-live` instead of eyeballing it.
+- **"Can't access it":** DNS and the hostname first (`NXDOMAIN` looks identical to a down app), then the app's
+  Tailscale sidecar (running, and `tailscale serve` pointing at the app), then the container. See the `verify-ui-live` gotchas.
 - **Port collisions:** `fleet-ops`. **Backup or NAS pipeline:** `backups-and-alerts` (not in this kit).
 - **Stale UI that "won't deploy":** usually the service-worker cache; see the `verify-ui-live` gotchas.
 
 ## Gotchas
 
-- **You want to fix before reproducing ("it's probably the null check").** Stop and build the step 1 command.
+- **You want to fix before reproducing ("it's probably the null check").** Stop and build the step 1 command. [bl: soft]
 - **You are reading code to build a theory and no red command exists yet.** That is the failure this skill
   prevents; go back to step 1.
 - **You forced a test red by editing code or a fixture.** `diff` against a pristine copy to prove the edit
   landed before you trust the red.
-- **You changed three things and reran once.** Revert to one change per run, or you learn nothing.
+- **You changed three things and reran once.** Revert to one change per run, or you learn nothing. [bl: soft]
 - **You are about to say "fixed" because the code should work now.** Rerun the red command first.
-- **The urge to refactor mid-debug.** Park it; one problem at a time.
+- **The urge to refactor mid-debug.** Park it; one problem at a time. [bl: soft]
 - **Two `node --watch` dev servers race for the port** and the log still says "listening", so probes hit stale code. Before starting one, check `ps -eo pid,etime,args | grep 'watch server'` and stop the old one by PID; compare `ps -o lstart -p <pid>` with the file's mtime before trusting a probe.
 
 ## References

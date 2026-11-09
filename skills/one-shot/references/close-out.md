@@ -16,7 +16,10 @@
    A and rejected B), add it to the "Rejected / parked" section of the project's IMPLEMENTATION_PLAN.md in
    the `new-app` format: Decision, Why not B, and **what would change the answer**. Without this, the
    next session re-litigates B.
-5. **Report** what shipped, an evidence summary, and anything deliberately left out of scope.
+5. **Report** what shipped, an evidence summary, and anything deliberately left out of scope. Before
+   writing it, walk every line you would mark "left", "gap", "Could fix" or "Unverified": fix it now and
+   check it, or name what blocks it (a user decision, a pre-existing bug filed to Triage, a scope the user
+   set). A gap you could have fixed is never reported as left.
 6. **Tear down the dev environment.** If verifying in step 5 required bringing up a dev container, or a
    dev container is left running only for this work, remind the user and offer to stop it
    (`docker compose stop <dev services>`). Idle hot-reload dev containers leak GBs of RAM on this box (see

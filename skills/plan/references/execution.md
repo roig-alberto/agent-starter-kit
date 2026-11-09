@@ -23,6 +23,9 @@ Implement the approved plan one phase at a time, with an approval gate between e
   dependency, an assumption that does not hold, a phase bigger than it looked), do not improvise around
   it. Surface it, update the plan file, and get the user's sign-off on the revised phasing before
   continuing. A plan changing mid-execution is normal and expected; silently deviating from it is not.
+- **Too many review passes is reality diverging.** A phase whose review needs more than 3 passes, or a fix
+  that only repairs the previous fix (recovery logic on recovery logic), stops: rewrite that phase's design
+  in the plan file and get the user's sign-off, as above.
 - **Keep verification honest.** "It compiles" is not "it works." Run the actual tests or checks named in
   the plan. If a phase has no meaningful verification, that is a smell; say so.
 - **Respect project conventions.** Follow the patterns in `AGENTS.md` (the same file as

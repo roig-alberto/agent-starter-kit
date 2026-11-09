@@ -63,6 +63,13 @@ Triage; fixing is interactive.
    is blocked.
 
    Done when: both status outputs and the log tail are quoted in the findings, with any held push explained.
+9. **Prose that should be a check.** Read RULES.md and each skill's Rules section against the table in
+   `knowledge-authoring/references/enforcement.md`. What is enforced today is listed in RULES.md itself (the guards
+   line in "Git and secrets", the lint line in "Keeping knowledge true"); interactively, also grep the guard,
+   `git-hooks/` and `knowledge-lint.py`. Each line a script could check but nothing does is a finding naming the
+   mechanism, with a count of past breaks from HISTORY.md or HARVEST. A rule nobody broke is listed as "fine as prose".
+
+   Done when: every RULES.md section has a row: "enforced by <check>", "should be <mechanism>", or "prose".
 
 ## Output
 

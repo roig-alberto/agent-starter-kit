@@ -9,6 +9,7 @@ without opening every image. Treat them as taste signal, not as a spec to copy p
 | `ui-examples2.png` | Same near-black neutral base, glowing progress ring, bold hero number, glowing center-FAB, minimal card chrome - violet/emerald/mint variants. |
 | `ui-examples3.png` | Accent-candidate board for the closet packing flow (same screen × 3 accents): coral fuego, amarillo cromo, azul hielo. Each accent carries a soft **halo/glow** on the filled CTA, active step chip, pill tab, slider fill and round `+` button. Note the varying **base black** per column (pure black / neutral / blue-tinted). |
 | `ui-examples4.png` | Same board, second accent set: lima eléctrica, rosa neón, cian eléctrico. Captions call out **semantic collision** explicitly - the accent must not fight the green "done" and red "exclude" states. |
+| `ui-examples5.png` | A light, airy AI assistant empty state (added 2026-10-21): a dog mascot with sushi, carrot and bone icons floating around it, a one-line prompt, lavender starter chips ("What should I eat for breakfast?") above a rounded input with a send button, a three-tab bar. Liked for its motion: the icons bob, the sheet bounces in, the microphone grows into a "Listening..." pill (see `standout-checklist.md`). |
 
 ## The recurring aesthetic (the actual signal)
 

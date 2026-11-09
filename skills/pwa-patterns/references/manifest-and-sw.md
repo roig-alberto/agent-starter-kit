@@ -1,7 +1,7 @@
 # Manifest, icons, service-worker tiers, share_target, and install
 
 The detail behind the manifest, service-worker, and install rules in `SKILL.md`. All the fleet apps are
-installed PWAs behind Cloudflare tunnels; these are the patterns that survived contact with real phones.
+installed PWAs served on the tailnet through a Tailscale sidecar; these are the patterns that survived contact with real phones.
 
 ## Manifest (hand-written, per app)
 
@@ -15,11 +15,11 @@ devDep costs a `--renew-anon-volumes` rebuild for nothing.
 
 ## Changing an icon: VERSION the URL in the manifest
 
-Use `/icons/icon-512.png?v=2`. Cloudflare stamps static assets `max-age=14400` even when the origin sends
-`max-age=0` (CF's Browser Cache TTL overrides the origin), so phones hold the OLD PNG for 4h, and the OS
-home-screen icon is sticky on top of that. The manifest itself is uncached (`DYNAMIC`), so the OS re-reads
-it, and the `?v=2` URLs were never cached, which gives a fresh icon. Then remove and re-add the PWA. The
-systemic alternative is setting CF "Browser Cache TTL = Respect Existing Headers".
+Use `/icons/icon-512.png?v=2`. Phones can hold the OLD PNG at an unchanged URL, and the OS home-screen
+icon is sticky on top of that. The OS re-reads the manifest, and the `?v=2` URLs were never cached, which
+gives a fresh icon. Then remove and re-add the PWA. (Under the old Cloudflare edge, CF stamped static assets
+`max-age=14400` and the systemic fix was CF "Browser Cache TTL = Respect Existing Headers"; see
+`history.md`.)
 
 ## Service worker: three proven tiers; pick by need, never exceed it
 
@@ -28,7 +28,7 @@ systemic alternative is setting CF "Browser Cache TTL = Respect Existing Headers
    means zero stale-cache bugs. **This is the default for new apps.**
 2. **Tier 1 + share_target + an immutable-gated static cache** (Caudal `public/sw.js`): adds cache-first
    for `GET /_next/static/*` ONLY when the response carries `Cache-Control: immutable`. Prod hashed chunks
-   cache and `next dev` chunks never do, so tunnel hot-reload stays fresh with ONE sw file for both
+   cache and `next dev` chunks never do, so dev hot-reload stays fresh with ONE sw file for both
    containers. Use it when a rarely-opened PWA feels slow to load. The full rationale and verification are
    in `verify-ui-live/references/gotchas-and-perf.md`.
 3. **Precached app-shell** (closet: Workbox `injectManifest`, `precacheAndRoute`, custom `src/sw.ts`): a
@@ -52,12 +52,11 @@ file-intake app.
   auth-gated manifest breaks install silently. **The trap is an icon at the public ROOT, outside the
   `/icons/` prefix**: recall's `/icon-source.svg` (referenced by both the manifest AND layout `icons.icon`
   = favicon) stayed auth-gated, redirected to `/login`, and silently 404'd for the installed PWA while the
-  `/icons/` PNGs worked. Enumerate every path the manifest and layout reference, not just the prefix. The
-  same applies to the Cloudflare Access bypass.
-- **Cloudflare Access blocks WebAPK minting** (the Android icon opens Chrome instead of standalone). Add a
-  scoped Access Bypass for the manifest and icon paths; the runbook is in `fleet-ops`
-  `references/cloudflare-tunnel.md`.
+  `/icons/` PNGs worked. Enumerate every path the manifest and layout reference, not just the prefix.
+- **The Android icon opens Chrome instead of standalone.** Under the old Cloudflare edge, Access blocked
+  WebAPK minting (see `history.md`). On the tailnet there is no edge gate; whether WebAPK minting works for a
+  tailnet-only host is unverified (2026-10-27).
 - **After changing the SW, installed clients self-heal only on next launch** (about a daily check); a
   one-time remove and re-add of the PWA forces it. Verify what the container actually serves first:
   `curl -s http://localhost:<hostport>/sw.js` (host ports are in `~/.claude/FLEET.md`).
-- **Verify install-affecting changes at phone width against the live tunnel** (`verify-ui-live`).
+- **Verify install-affecting changes at phone width against the live tailnet host** (`verify-ui-live`).

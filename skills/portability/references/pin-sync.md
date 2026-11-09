@@ -6,7 +6,6 @@ Locations verified 2026-10-15 with a grep of dev-system and the app compose file
 |---|---|
 | `postgres:16.x-alpine` | each app's compose (db + db-backup, dev and prod files) · dev-system `bootstrap/templates/docker-compose.{dev,prod}.yml` · `scripts/restore-test.sh` `PG_IMAGE` · `REBUILD.md` wherever it names the image |
 | `node:*-alpine` / `node:*-bookworm-slim` | compose (web/worker) · Dockerfiles (all stages). Apps differ on purpose (Shelf uses `bookworm-slim` for glibc); read the current tags in FLEET.md |
-| `cloudflare/cloudflared` | each app's compose · bootstrap templates |
 | `rclone/rclone` | every rclone backup sidecar's compose (closet and the ops bundle) · backup-template |
 | `tailscale/tailscale` | each compose that runs a tailscale sidecar |
 | npm deps | the app's `package.json` + lock, per app, never "while I'm here" across apps |

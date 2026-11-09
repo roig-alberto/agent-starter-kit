@@ -1,3 +1,2 @@
-
 [hooks]
 exclude_commands = ["curl", "systemctl", "journalctl", "ssh-keyscan", "tsc", "npx tsc"]

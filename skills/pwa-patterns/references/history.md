@@ -53,3 +53,8 @@ Details are in `references/launch-splash.md`.
 
 The old description said: "notifications don't arrive". ALSO first stop when STALE AFTER A DEPLOY: "I don't see the
 new version". The stale-after-deploy symptoms are listed as trigger phrases in the current description.
+
+## 2026-10-27: Cloudflare removed, apps tailnet only
+
+- Every app is now reachable only on the tailnet through a Tailscale sidecar; Cloudflare tunnels and Access are gone. The old install rules said: allowlist the manifest and icon paths in the Cloudflare Access bypass too; Cloudflare Access blocks WebAPK minting, so add a scoped Access Bypass for the manifest and icon paths (runbook was `fleet-ops` `references/cloudflare-tunnel.md`).
+- The old icon rule said Cloudflare pins static assets for 4h regardless of the origin's headers (`max-age=14400`), with the systemic fix CF "Browser Cache TTL = Respect Existing Headers". The old stale-SW gotcha checked `curl -sI https://<host>/sw.js | grep -i "cache-control\|cf-cache-status"` for `REVALIDATED`.

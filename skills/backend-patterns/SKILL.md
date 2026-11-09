@@ -30,7 +30,8 @@ nothing, a rename that silently kills a consumer, and a deploy that runs new DB 
   partial revert leaves derived state (a ranking timestamp) silently wrong.
 - **Validate with Zod inline at every boundary.** Declare `const Body = z.object({...})` in the route or
   action file itself and parse before touching the DB; there is no central schema module, and docs
-  claiming "shared schemas" are drift.
+  claiming "shared schemas" are drift. Write only the parsed fields: a request body spread into an insert or
+  update lets the client set any column (mass assignment).
 
 - **A state-changing call that can be retried honours an idempotency key** (imports, webhooks, money writes).
   The key comes from the intent (the client's `Idempotency-Key`, or `charge:v1:${orderId}`), never
@@ -69,7 +70,7 @@ nothing, a rename that silently kills a consumer, and a deploy that runs new DB 
 
 ## Rules: auth, outbound calls, jobs, LLMs
 
-- **Single-user auth is argon2 plus an HMAC cookie, behind Cloudflare Access.** Never import the argon2
+- **Single-user auth is argon2 plus an HMAC cookie, and it is the gate on the tailnet.** Never import the argon2
   native module in `middleware.ts` (it is edge code); gate with an explicit PUBLIC allowlist. The full
   recipe is in `references/auth.md`, and `security` (not in this kit) owns the first layer.
 - **Every outbound call needs a per-ATTEMPT `AbortController` timeout, and the abort counts as transient.**
@@ -113,7 +114,7 @@ nothing, a rename that silently kills a consumer, and a deploy that runs new DB 
 - **The app "freezes" after a server-action `redirect()` from a segment's index page to a nested route.**
   Navigate from a sibling depth or redirect client-side.
 - **Localhost renders HTTP 200 but React never hydrates.** `allowedDevOrigins` REPLACES the default
-  allowlist; include `127.0.0.1` and `localhost` beside the tunnel host.
+  allowlist; include `127.0.0.1` and `localhost` beside any other dev host.
 - **A per-item server action fires in a runaway cascade.** The action refreshes the route it reshapes;
   snapshot the item into client state.
 - **`next build` fails on `DATABASE_URL is not set`.** Set

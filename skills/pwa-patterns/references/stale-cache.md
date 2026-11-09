@@ -6,7 +6,7 @@ symptom you have before touching the service worker.
 | Symptom | Cause | Section |
 |---|---|---|
 | Old DATA after a mutation; a fresh tab is fine; only reinstalling helps | cache-FIRST navigation in the SW | 1 |
-| Old or blank PAGE for hours after a DEPLOY; localhost fine; clearing the cache fixes it per-device | Cloudflare pinning `/sw.js` | 2 |
+| Old or blank PAGE for hours after a DEPLOY; localhost fine; clearing the cache fixes it per-device | an HTTP cache pinning `/sw.js` (it was Cloudflare's edge) | 2 |
 
 ## Installed PWA shows STALE DATA - `staleTimes` is a DEAD END; the fix is a network-first SW (recall, RESOLVED 2026-07-16)
 
@@ -26,6 +26,9 @@ Tier-3 (precached app-shell) column below - recall now joins closet there, but w
 live data stays fresh. **Do NOT** add cache-first navigation to a data-live PWA; that's the bug, not the fix.
 
 ## Cloudflare pins a STALE `/sw.js` for 4h - every deploy ships broken until it expires (recall, 2026-07-23)
+
+Cloudflare is gone since 2026-10-27 (apps are tailnet only), so this exact edge override cannot recur, but
+the `no-store` and per-build cache fix still guard against any HTTP cache. The incident as it happened:
 
 Symptom: after a prod deploy the app serves an old or blank page for hours; localhost is fine, and
 "clear the cache" fixes it per-device. Same *symptom* as the stale-data section above, different
@@ -48,6 +51,13 @@ longer serves.
 
 Same family as the icon `max-age=14400` override below and the edge-cached `/api` config in
 `fleet-ops`. A hashed-chunk precache does NOT protect you - the stale thing is the SW.
+
+## A Next.js redeploy silently loses saves in an open PWA (personal-dash, 2026-10-19)
+
+The open page calls Server Actions by the old build's ids; the server answers 404 with `x-nextjs-action-not-found: 1`
+(Next 15.5) and the save is gone. One fetch wrapper in the root layout covers every action: on that header, reload once
+(a sessionStorage timestamp stops a loop) and toast "updated, try again". Recipe: personal-dash
+`components/pwa/stale-build-reload.tsx`. Every Next app on the fleet has this trap.
 
 ## `immutable` on a URL whose bytes can change = a year-long stale trap
 

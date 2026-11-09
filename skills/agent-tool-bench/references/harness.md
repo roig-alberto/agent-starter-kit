@@ -10,7 +10,7 @@
 
 Re-clone: `gh repo clone kunchenguid/axi ~/projects/axi -- --depth 1`
 
-## Setup (verified 2026-09-05)
+## Setup (verified 2026-11-06)
 
 The repo is a pnpm workspace, but **the bench dirs have no workspace-internal deps**, so plain npm works
 and pnpm need not be installed:
@@ -27,6 +27,14 @@ box**: `npm i -g gh-axi` reports success and leaves nothing runnable. Symlink it
 npm i -g gh-axi
 ln -sf "$(npm config get prefix)/bin/gh-axi" ~/.local/bin/gh-axi   # ~/.local/bin IS on PATH
 ```
+
+Two traps found on 2026-11-06 (bench-browser):
+
+- **Run `npm install` in each bench dir first after a host move.** Without `node_modules`, every run prints
+  `tsx: not found` and the loop still exits 0, so a whole matrix "finishes" with no results.
+- **The agent-browser arm killed its own matrix.** `src/lifecycle.ts` stopped the daemon with
+  `pkill -f 'agent-browser'`, which also matches the bench's `--condition agent-browser` command line (exit 144
+  after run 1). The local clone now runs `agent-browser close`; keep that edit if you re-clone.
 
 ## Running it
 
@@ -59,6 +67,12 @@ Both are declarative YAML, with no code:
 
 Copy the nearest existing arm and edit it. Keep tasks READ-ONLY: the bundled 17 all are, and a benchmark
 that files issues on someone's repo is an outward-facing write.
+
+## Judging attempts with a model
+
+Judge attempts side by side, twice, with the labels and the order shuffled; never score each one alone. Scored alone,
+four attempts at one UI task all got 8/10 (no signal); one side-by-side call ranked them and kept the order when the
+labels were shuffled (agent-factory, 2026-10-18). Agent Factory's Compare judge (`server/compare.ts`) does this.
 
 ## Arm isolation is already handled; do not re-solve it
 

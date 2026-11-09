@@ -2,8 +2,7 @@
 name: new-app
 description: >-
   The one entry point for any brand-new project or app, from a one-line idea to a running build; for a
-  new self-hosted app that runs as a container on this box's Docker CE and WSL2 home base, it also covers
-  the bootstrap (--guided or --auto). Use when the user wants to start a new project or app from scratch,
+  new self-hosted app that runs as a container on this box's Docker CE, it also covers the bootstrap (--guided or --auto). Use when the user wants to start a new project or app from scratch,
   invokes /new-project or '/bootstrap', or says 'start a new app', 'scaffold a project', 'spin up a new
   service', 'bootstrap my-app'. NOT for a feature on an existing app (use one-shot); NOT for migrating an
   existing app onto Docker CE (use portability); NOT for a PACKAGED third-party image such as Uptime Kuma,
@@ -13,10 +12,10 @@ description: >-
 # new-app
 
 Take a new project from a one-line idea to a building implementation, and, for a containerized app on this
-box, to booted, tunnelled, and backed up off-site. Run the steps **in order**; each one has a gate, so do
+box, to booted, reachable on the tailnet, and backed up off-site. Run the steps **in order**; each one has a gate, so do
 not advance until its artifact exists and (in `--guided`) the user has confirmed it. The failure this
 prevents is a build that starts before the stack, the docs, and the design are settled, and an app that
-ships without a port record, a tunnel, or a backup. Treat the user as the decision-maker: recommend, never
+ships without a port record, a Tailscale sidecar, or a backup. Treat the user as the decision-maker: recommend, never
 dictate.
 
 For the container steps this skill is thin glue: it sequences `fleet-ops`, `backups-and-alerts` (not in this kit),
@@ -36,13 +35,13 @@ the dev-system repo: `~/projects/dev-system/bootstrap/`, which holds
    an ML backend or a multi-client app). **Interview** runs step 2 in full for the exceptions. Also settle
    whether the app runs as a container on this box; if not, skip steps 6 to 12.
    Done when: the answer and the container yes or no are recorded.
-2. **Requirements and stack, with `grill-me`.** Walk the design tree one question at a time: audience and
+2. **Requirements and stack, with `grill-me`.** Walk the design tree in rounds: audience and
    scope, platform, persistence and hosting, **the full stack**, the data model, domain rules, edge cases,
    and what is out of scope. Lock early the UI toolkit, 1-3 reference apps, the #1 usability priority, the
    tempting-but-out-of-scope wants, and the load-bearing external dependency. Offer the default stack first
    and deep-dive only the layers the user changes; in default-stack mode, pre-fill all of this.
    Done when: the stack and the core domain decisions are explicit and agreed.
-3. **Write the canonical spec docs** in `~/projects/<app>` (WSL-native): **CLAUDE.md** with a Facts block
+3. **Write the canonical spec docs** in `~/projects/<app>`: **CLAUDE.md** with a Facts block
    and a Commands block, **AGENTS.md as a symlink** (`ln -s CLAUDE.md AGENTS.md`),
    **IMPLEMENTATION_PLAN.md**, **DESIGN_BRIEF.md**, and **FEATURES.md**; once the scaffold builds, the
    `architecture` skill adds ARCHITECTURE.md, GLOSSARY.md, CODEMAP.md and REVIEW.md.
@@ -55,7 +54,7 @@ the dev-system repo: `~/projects/dev-system/bootstrap/`, which holds
 5. **Plan the build, with the `plan` skill.** The first phase is always the **scaffold** (config, the theme
    wired from DESIGN_TOKENS.md, the schema and first migration, run and build). For a container app the
    scaffold phase is steps 6 to 12; a builder that cannot run Docker (an Agent Factory agent) scaffolds the
-   dev stack only and leaves the tunnel, backup and rebuild-file steps to a later go-live phase. Then **prove the load-bearing external dependency end to end** before
+   dev stack only and leaves the Tailscale sidecar, backup and rebuild-file steps to a later go-live phase. Then **prove the load-bearing external dependency end to end** before
    any feature sits on it. Then build feature by feature, ticking each off in `FEATURES.md`.
    Done when: the plan exists and the scaffold builds and runs; later phases follow the plan's approvals.
 6. **Host port, with `fleet-ops`.** Read its port registry AND run a live `docker ps -a` before picking.
@@ -64,13 +63,17 @@ the dev-system repo: `~/projects/dev-system/bootstrap/`, which holds
    Done when: `__PORT__` is chosen and recorded with no collision.
 7. **Scaffold from the templates.** Copy `bootstrap/templates/` (with its `scripts/`) into the project and substitute
    `__APP__`, `__APP_NS__`, `__PORT__`, `__HOSTNAME__`. Put `restart: unless-stopped` on every service so
-   it self-heals after `wsl --shutdown`.
+   it self-heals after a reboot or a dockerd restart.
    Done when: `docker compose config` parses and the dev stack builds.
-8. **Tunnel and Access, with `fleet-ops`.** Stand up the per-app `cloudflared` **container** (profile
-   `prod`, a named tunnel and `TUNNEL_TOKEN`) on `example.com`, with the Cloudflare Access policy. **One
-   hostname:** `<app>` to `web-prod:3000`. There is no dev hostname; dev is localhost only. Add it to the
-   registry's tunnel table.
-   Done when: the tunnel is healthy and the hostname is in the registry.
+8. **Tailscale sidecar, with `fleet-ops`.** Remote access is the tailnet only; there is no Cloudflare,
+   no Funnel and no host port. The template's `tailscale-prod` service already has the shape (userspace
+   `tailscaled`, a `tailscale_state` volume, and no `hostname:` key, which would shadow a service DNS
+   name); keep it as is. Once, after the first
+   start, run `tailscale up --hostname=<app>` in the sidecar and open the login link, then
+   `tailscale serve --bg --https=443 http://web-prod:3000`. **One hostname:** `<app>` on the tailnet; dev
+   is localhost only. The app's own password is the gate inside the tailnet.
+   Done when: `tailscale serve status` in the sidecar shows the HTTPS route and the hostname answers from
+   another tailnet device.
 9. **Backup by construction, with `backups-and-alerts` (not in this kit) and `backup-template/`.** Every app with a database
    gets a **`db-backup` sidecar**: a local-first `pg_dump`, then an additive `rclone copy` to
    `nas:/backups/<app>` with the NAS host key pinned. A NAS failure fires a Telegram dead-man's-switch and
@@ -86,9 +89,8 @@ the dev-system repo: `~/projects/dev-system/bootstrap/`, which holds
     (`frontend-interaction-patterns`, `verify-ui-live`, `ios-pwa-dock`, and others) in its `AGENTS.md`
     (the same file as `CLAUDE.md`).
     Done when: the skill-fit note is in the app's AGENTS.md.
-12. **Verify live, with `verify-ui-live`.** The app is reachable through its tunnel hostname, the backup is
-    on the NAS, and the containers return after `systemctl restart docker` (or a coordinated
-    `wsl --shutdown`). The live names and ports then show in `~/.claude/FLEET.md`.
+12. **Verify live, with `verify-ui-live`.** The app is reachable through its tailnet hostname, the backup is
+    on the NAS, and the containers return after `systemctl restart docker` (or a reboot). The live names and ports then show in `~/.claude/FLEET.md`.
     Done when: live, backed up, and self-healing, each shown by a command.
 13. **Wrap up.** When pausing or finishing, offer the **handoff** skill, and confirm `FEATURES.md` is current.
     Done when: everything shipped this session is ticked and new scope is added.
@@ -101,8 +103,7 @@ the dev-system repo: `~/projects/dev-system/bootstrap/`, which holds
 - **Keep `FEATURES.md` as the living tracker of progress.** IMPLEMENTATION_PLAN.md holds the decisions.
 - **Use the blessed default stack unless the user overrides it.** It is locked in SYSTEM_SPEC §2, so every
   app shares one backup and restore pipeline.
-- **Keep project code in `~/projects/<app>` inside WSL2, never under `/mnt/c`.** `/mnt/c` is a
-  performance trap.
+- **Keep project code in `~/projects/<app>`.** Every rebuild file and skill assumes that path.
 - **Run Docker CE (systemd-managed), not Docker Desktop, with `restart: unless-stopped` everywhere.** The
   fleet must come back on its own after a restart.
 - **Make the backup a `db-backup` sidecar, not a host systemd timer.** The sidecar migrates *with* the app.

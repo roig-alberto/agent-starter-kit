@@ -6,12 +6,12 @@ Contract: print ONE JSON object {"problems": [{"key", "title", "fix"}], "info": 
 stable across runs (the loop files it once). A crash, a non-zero exit or other output is read by the loop as "this
 check is broken", never as clean.
 
-Usage: box-checks.py deploy-sync | guards | routing | harvest | project-docs | skill-usage
+Usage: box-checks.py deploy-sync | guards | routing | harvest | project-docs | skill-usage | untracked-scripts | board-coverage
 """
 import datetime, filecmp, json, os, re, subprocess, sys
 
 HOME = os.path.expanduser("~")
-DS = "~/projects/dev-system"
+DS = f"{HOME}/projects/dev-system"
 
 
 def out(problems, info=""):
@@ -30,8 +30,13 @@ def deploy_sync():
         (f"{DS}/systemd/restore-test.timer", "/etc/systemd/system/restore-test.timer"),
         (f"{DS}/systemd/secrets-backup.service", "/etc/systemd/system/secrets-backup.service"),
         (f"{DS}/systemd/secrets-backup.timer", "/etc/systemd/system/secrets-backup.timer"),
-        (f"{DS}/host/wslconfig", "<WINDOWS_HOME>/.wslconfig"),
         (f"{DS}/host/review-diff", f"{HOME}/.local/bin/review-diff"),
+        # 2026-10-26 retro: the other host scripts drifted unseen (mem-watch). cf-reachability-check left with
+        # Cloudflare on 2026-10-27 (every app on Tailscale only), so it has no pair.
+        (f"{DS}/host/mem-watch.sh", "/usr/local/bin/mem-watch.sh"),
+        (f"{DS}/host/docker-restart-alert.sh", "/usr/local/bin/docker-restart-alert.sh"),
+        (f"{DS}/host/claude-spawner.py", "/usr/local/bin/claude-spawner.py"),
+        (f"{DS}/host/docker-daemon.json", "/etc/docker/daemon.json"),
     ]
     problems = []
     for src, dst in pairs:
@@ -117,7 +122,42 @@ def skill_usage():
     out(problems, next((l[2:] for l in lines if l.startswith("- most used")), ""))
 
 
-CHECKS = {"deploy-sync": deploy_sync, "guards": guards, "routing": routing, "harvest": harvest, "project-docs": project_docs, "skill-usage": skill_usage}
+def untracked_scripts():
+    # 2026-10-26 retro (HARVEST 10-19): a .gitignore allowlist kept loop scripts out of git, so loops ran files that
+    # were never pushed. Every file under ~/.claude/scripts must be tracked.
+    r = subprocess.run(["git", "-C", f"{HOME}/.claude", "ls-files", "--others", "--exclude-standard", "--ignored", "scripts"], capture_output=True, text=True, timeout=30)
+    if r.returncode != 0:
+        raise SystemExit(r.stderr)
+    files = [f for f in r.stdout.split() if "__pycache__" not in f]
+    out([{"key": f, "title": f"~/.claude/{f} is not in git", "fix": "Whitelist it in ~/.claude/.gitignore so the auto-push carries it, or delete it."} for f in files], "scripts checked")
+
+
+def board_coverage():
+    # 2026-10-26 retro (HARVEST 10-19): an app off the board misses every loop (recall's missed reminders went unseen).
+    # Every running compose project under ~/projects is a board repo, except the apps ENVIRONMENT.md marks unused or
+    # packaged, and the host services.
+    env = open(f"{HOME}/.claude/ENVIRONMENT.md").read()
+    exempt = set()
+    for pat in (r"Not in use: ([^(]+)", r"Packaged third-party images \(([^)]+)\)", r"\) are run by `fleet-ops`[^.]*\. ([a-z, -]+) and ([a-z-]+) are host"):
+        for m in re.finditer(pat, env):
+            exempt |= {w.strip() for g in m.groups() for w in re.split(r",| and ", g) if w.strip()}
+    r = subprocess.run(["docker", "compose", "ls", "--format", "json"], capture_output=True, text=True, timeout=30)
+    if r.returncode != 0:
+        raise SystemExit(r.stderr)
+    import sqlite3
+    db = sqlite3.connect(f"file:{HOME}/.local/share/agent-factory/factory.db?mode=ro", uri=True)
+    board = {os.path.realpath(p) for (p,) in db.execute("select path from repos where archived_at is null")}
+    problems = []
+    for proj in json.loads(r.stdout or "[]"):
+        d = os.path.dirname(proj["ConfigFiles"].split(",")[0])
+        repo = d if os.path.dirname(d) == f"{HOME}/projects" else os.path.dirname(d)
+        name = os.path.basename(repo)
+        if repo.startswith(f"{HOME}/projects/") and name not in exempt and proj["Name"] not in exempt and os.path.realpath(repo) not in board:
+            problems.append({"key": name, "title": f"{name} runs but is not on the board, so no loop covers it", "fix": f"Add it in Agent Factory (Repos > Add), or mark it unused or packaged in ENVIRONMENT.md."})
+    out(problems, f"{len(board)} board repos, exempt: {', '.join(sorted(exempt))}")
+
+
+CHECKS = {"deploy-sync": deploy_sync, "guards": guards, "routing": routing, "harvest": harvest, "project-docs": project_docs, "skill-usage": skill_usage, "untracked-scripts": untracked_scripts, "board-coverage": board_coverage}
 
 if __name__ == "__main__":
     if len(sys.argv) != 2 or sys.argv[1] not in CHECKS:

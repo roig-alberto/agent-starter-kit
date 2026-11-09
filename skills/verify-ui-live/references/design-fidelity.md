@@ -67,7 +67,7 @@ tone). Do this once per screen before calling a design implemented.
 4. Each divergence is a defect to fix or an explicitly recorded deviation, never a silent judgment
    call (§1b step 4).
 
-Design frames often live OUTSIDE the repo - `<WINDOWS_HOME>/inbox/input-<feature>-<project>/`
+Design frames often live OUTSIDE the repo - `<inbox folder>/input-<feature>-<project>/` (path in ENVIRONMENT.md "File exchange")
 (ENVIRONMENT.md); grep there before assuming a referenced wireframe doesn't exist.
 
 ## 2. HTTP smoke check (no browser)
@@ -86,8 +86,9 @@ sheet content (Vaul drawers) mounts on open - grep for it in the browser, not cu
 
 ## 3. Tell the user it's live
 
-Same container is tunneled → once verified locally, it's already at the public
-hostname. Tell the user to refresh. No deploy step.
+A dev edit verified on localhost is not yet on the phone: the tailnet hostname serves
+the prod container. Ask whether to rebuild prod now; after the rebuild, verify on the
+tailnet hostname and then tell the user to refresh.
 
 **To SHOW the user, not just describe:** capture with `ui-check --shot <file>.png`,
 then `SendUserFile` that PNG so it reaches them - `display: "render"` opens it inline

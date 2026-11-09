@@ -946,6 +946,30 @@ Linear's agent chat, measured on native frames (2026-10-14), and what ours does 
 }
 ```
 
+- **The same shimmer covers any slow load that would otherwise show a blank white box** (Agent Factory live preview,
+  2026-10-21, headless only so far). A Vite dev page over mobile data and Tailscale loads ~200 files and the iframe sat
+  white for many seconds, which the user read as broken. Until the frame's `load` event: the iframe at `opacity: 0` on
+  the dark surface, "Loading the preview..." in `.af-shimmer` centred over it; on `load` the page fades in with
+  `transition: opacity var(--dur-base) var(--ease-out)`. Keep "loaded" per url (`shown === url`), so a new url shows
+  the loader again without an effect.
+
+```tsx
+const [shown, setShown] = useState<string | null>(null); // the url whose page has loaded in the frame
+<iframe src={url} onLoad={() => setShown(url)}
+  className={`size-full transition-opacity duration-(--dur-base) ease-(--ease-out) ${shown === url ? "" : "opacity-0"}`} />
+{shown !== url && (
+  <div className="pointer-events-none absolute inset-0 grid place-items-center">
+    <span className="af-shimmer text-[15px]">Loading the preview...</span>
+  </div>
+)}
+```
+
+- **A picture viewer is a sheet, not a scaling modal** (Agent Factory screenshots, D220, 2026-10-22, headless only):
+  the old viewer faded a backdrop and scaled the image from 0.96, as a full-screen button with no visible close. It is
+  now a vaul sheet (vaul's own slide and drag), which brings swipe-down to close and a held page for free. The exit
+  needs its content: keep the shown item in state and close by flipping `open` only, so the picture rides the slide out
+  instead of the sheet emptying first.
+
 ```ts
 // The iPhone raises the keyboard only for a focus made INSIDE a tap. A screen that opens with its field ready to type
 // (Linear's agent chat, 2026-10-14) calls this in the tap's handler: a hidden field takes the focus at once (keyboard up),
@@ -1092,12 +1116,105 @@ aside 200 ms, drop springs (`duration 0.35, bounce 0.1`).
   spinner for a tick with no motion. A helper agent's steps nest under it, indented.
 - **Auto-scroll**: smooth, and only when the reader is already at the bottom; their own scroll always wins.
 - **Permission request card**: fade + 8 px once. **No looping pulse** (it nags and burns battery).
+- **A busy status ring turns** (Agent Factory Board, 2026-10-21): the row's status ring rotates, linear 3 s, CSS
+  keyframes on the SVG group with `transform-box: fill-box; transform-origin: center` (without them an SVG group turns
+  about the page origin). Reduced motion: no turn, a still dot in the ring says "working" instead.
+- **A card that just started glows once**: an inset accent ring plus a soft outer glow that fade out in 1.2 s with
+  `--ease-out`, played once on the first render within 4 s of the start. Reduced motion: none (the row's own move to
+  its new group still shows the change).
+
+- **A countdown on a toast** (Agent Factory New task, 2026-10-21): a 3 px line empties linearly over the toast's life
+  (6 s) and pauses while a finger holds the toast; the library's own timer is off so the line is the only clock. A
+  draining Undo bar under a cleared draft works the same way (5 s); reduced motion keeps the bar still.
 
 ### Canvas (pan and zoom)
 
 Pan / pinch follows the finger 1:1, momentum on release, rubber band at the limits (library inertia,
 `react-zoom-pan-pinch`); zoom buttons and Fit animate 300 ms `--ease-in-out`; selection = outline opacity 100 ms; an
 item being generated = dashed outline pulsing 1.5 s linear, then a 300 ms crossfade to the real thing.
+
+### Patterns from reference recordings (2026-10-21)
+
+Copied frame by frame from screen recordings the user sent (Chris Raroque's Ellie, Luna and Amy apps, and Purist), for
+the Lumo spec; reuse them in any app. What to consider is in `frontend-design`'s `references/standout-checklist.md`;
+the values are here. Lumo's `docs/MOTION.md` (M1-M27) is the fullest worked example.
+
+- **Sheets that bounce and stack** (Luna; spatial, occasional): open translateY 100% to 0 on `--spring-pop` over
+  `--dur-sheet`; close slides down in `--dur-base` `--ease-drawer` with no bounce. The page behind becomes a card:
+  scale 0.94, translateY 10 px, brightness 0.5, corner radius 16 px, same timing, reversed on close. A plain sheet
+  keeps the faster 250/200 ms of item 4; use this one where the user asked for the bounce. Reduced: 150 ms fade.
+- **Steps inside one sheet slide sideways** (Luna add flow): next step translateX 100% to 0 while the current one goes
+  to -30% and dims, `--dur-move` `--ease-drawer`; Back reverses; the sheet itself never moves. Reduced: crossfade.
+- **Back to where you came from** (Luna): a page opened from a row shrinks back into that row on leave (shared
+  element, Motion `layoutId`, `--dur-sheet` `--ease-drawer`). Reduced: crossfade.
+- **Numbers that arrive alive** (Luna): each typed digit of a big amount enters at scale 0.8 plus fade, `--dur-fast`
+  `--ease-out`; after saving, the same number travels and shrinks into its row in the list (shared element,
+  `--dur-sheet` `--ease-drawer`). A chart line on a rarely opened screen draws itself once (stroke-dashoffset to 0,
+  600 ms `--ease-out`); dashboards opened many times a day stay still ("Deliberately NOT animated" below).
+- **A control becomes its next step** (Ellie microphone): the pill reveals out of the microphone with
+  `clip-path: inset(0 0 0 calc(100% - 44px) round 22px)` to `inset(0 round 26px)`, `--dur-move` `--ease-out`; its
+  content (cancel, sound bars, "Listening...", tick) fades in 80 ms later; the send arrow turns into the tick
+  (rotate -90deg plus crossfade, `--dur-fast`); done or cancel shrinks it back in `--dur-base`. Sound bars: scaleY from
+  the input level per frame, no easing. Reduced: crossfade the pill.
+- **A wait that tells a story** (Amy "searching"): stages replace each other in one spot (old fades and rises 4 px in
+  `--dur-fast`, new fades in `--dur-base`); the stage text carries a light sweep (gradient background-position,
+  linear 1600 ms, loops); a stack of overlapping source icons pops in at scale 0.9 to 1, 50 ms apart; the result fades
+  in with a small chevron. Reduced: crossfade, no sweep.
+- **Idle and empty states breathe** (Amy assistant; the user's rule, 2026-10-21): an empty state, or any screen where
+  an icon would sit still, gets one quiet loop. Bob: translateY 0 to -4 px, 2400 ms `--ease-in-out`, alternate,
+  infinite; several icons each start 300 ms after the last so they float out of step. A rocket: its flame flickers
+  (scaleY 0.85 to 1.15 from the nozzle with opacity 0.8 to 1, about 160 ms per change over 3-4 uneven keyframes,
+  linear) while the rocket itself bobs. The same idea for other icons: a bell swings plus or minus 8deg, a plant
+  sways, a magnifier circles. Pause loops off screen and in a hidden tab (`animation-play-state`, an
+  IntersectionObserver). Reduced: still.
+- **A reward you can play with** (Amy badges; delight, rare): the badge tilts toward the finger (rotateX and rotateY up
+  to 15deg under `perspective: 600px`), a shine gradient follows the finger, the drawing crossfades to its source photo
+  with the tilt; on release it springs flat (`{ type: "spring", duration: 0.5, bounce: 0.2 }`). Reduced: no tilt, a tap
+  shows the photo.
+- **An agent you can watch** (Purist; a store-images recording with two agents):
+  - A line runs around the border of what is being built. Measured frame by frame (2026-10-22, Lumo): thin and
+    solid (2 px, no glow), a quarter of the border long, clockwise, linear, one lap in 2.0-2.4 s, turning each
+    corner; fades out when done. Build it as four edge strips (`overflow: hidden`), each clipping one segment
+    animated by WAAPI `transform` with per-edge keyframe offsets, so it bends round corners and stays on the
+    compositor: an SVG stroke-dashoffset repainted the board (22 ms frames), and one rigid bar on `offset-path`
+    cut across every corner (the user saw it as broken). Lumo `web/src/canvas/Board.tsx`. The user then asked for a
+    little glow to see it better: put a `box-shadow` on the moving segment and clip each strip with a `clip-path`
+    polygon whose ends are cut at 45 degrees (exactly on the corner's diagonal, no overlap, which doubled the glow
+    there) instead of `overflow: hidden`. A `drop-shadow` filter on the strips or the board made replay frames 2.5
+    to 4 times slower in WebKit; the segment shadow cost nothing measurable. Shown four widths side by side, the user picked a 4 px line with a 22 px halo. Then the user wanted it to frame almost the whole board (90% lit, a short gap running round) and only on the
+    board being worked on now. For a long line, park each strip's mover fully lit and slide only while the gap
+    crosses that edge, with two pieces one edge long on either side of the gap; sliding two laps of glowing line per
+    strip stalled replays for 2 s in WebKit.
+  - The part being worked gets a 1.5 px accent outline (`--dur-fast` `--ease-out`).
+  - The user's own selection must read at any zoom: keep its ring and corner handles a constant size on screen
+    (scale by 1 / zoom), add a thin dark edge so a light accent shows on light paper, and show it at once (Lumo M3).
+  - The agent's cursor (an arrow with a label) travels first ("Moving to highlight", a slightly curved glide of
+    400-600 ms, `--ease-in-out`), presses on arrival (scale 0.9 and back, `--dur-press`), then acts ("Moving device":
+    the part follows it as if dragged; "Resizing device": it sits on a corner). Labels swap in place. Each agent's
+    cursor has its name and shade.
+  - A text sweep on a label that changes often (Lumo's cursor label, 2026-10-23): give it a negative `animation-delay`
+    of `-(performance.now() % period)` read ONCE per label (useMemo on the label), so the sweep carries on across label
+    changes. Read per render, it jumped up to 0.6 s; keyed remounts restart it from the left every swap.
+  - The real edit is saved at once; the screen queues it so it lands when the cursor arrives, at most about a second
+    behind, catching up faster when the agent is quick. The agent never waits for the animation.
+  - The view follows the agent (camera eases `--dur-move` `--ease-in-out`, the inspector shows the part's values),
+    with a "Following · Stop" pill; the user's own pan stops following.
+  - Reduced: outline and label appear in place, steady border glow, no glide.
+- **Effects from Purist's Welcome page** (user's screenshots): a headline that blurs in word by word (each word from
+  blur 8 px and opacity 0 to sharp, `--dur-sheet` `--ease-out`, words 60 ms apart; reduced: fade only); a "photo
+  tunnel" (images on a 3D curve, each card rotateY by its angle under `perspective: 1200px`, the strip translating
+  linear in an endless loop, slowed to a third and then paused on hover by changing the animation's playbackRate;
+  reduced: still); buttons that lift on hover (translateY -2 px plus a deeper shadow, `--dur-fast` `ease`, inside
+  `@media (hover: hover) and (pointer: fine)`).
+  Also from that page: a radial card stack (photo cards fanned from one pivot below them, each rotated a few degrees
+  apart; the front card swaps with a spring, `{ type: "spring", duration: 0.5, bounce: 0.2 }`, the rest re-fan in
+  `--dur-move` `--ease-in-out`) and a cascading slider (one large centre image between narrow strips; on next, the
+  strips widen and narrow into their new places in `--dur-sheet` `--ease-drawer`, a layout animation, never width on
+  every frame without it). Reduced: crossfade.
+- **Images being made** (Lumo): a painted image develops from blur (9 px to 0, opacity 0.6 to 1, 600 ms `--ease-out`);
+  an SVG the agent writes draws its paths in the order written (stroke-dashoffset to 0, 60 ms apart, `--dur-move`
+  `--ease-in-out`), then fills fade in; a node's edge draws in from its source before the node appears. Reduced:
+  crossfade.
 
 ### Deliberately NOT animated
 

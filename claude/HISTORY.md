@@ -17,7 +17,11 @@ TickTick lists dead and reached a finished brief as an architecture decision (pe
 ## Personal data never enters a repo
 
 Caught on caudal 2026-08-27 with nothing yet pushed (`git reset --mixed` plus a clean recommit). One
-push earlier and it would have been irreversible.
+push earlier and it would have been irreversible. Since 2026-10-28 the commit-msg hook blocks a valid IBAN (checksum
+checked; 0 in all 20 repos then, 2 IBAN-shaped random strings in a third-party clone that the checksum rejects) and a
+staged `.env*` or `secrets/` file by name (the tracked ones were all templates: `.env.example`, `.env.snippet`,
+`secrets/.gitignore`); the guard blocks `git add -f`. Amounts and names stay prose: no pattern catches them. The starter
+kit's redact map was rejected as a denylist: it holds machine facts that belong in `~/.claude` and app configs.
 
 ## Proven solution first
 
@@ -52,6 +56,19 @@ One sweep bundled 20 unrelated files in recall, 6 in personal-dash, 3 in myclose
 swept 297 `.playwright-mcp/` screenshots into a feature commit (2026-07-15). The Playwright MCP was
 removed 2026-09-08; agents now use `chrome-devtools-axi`.
 
+The dirty-tree eval (agent-tool-bench `references/dirty-tree-eval/`, 2026-10-27) found the old wording, "commit only
+your own files ... `-- <paths>`", wrong when the agent's file also holds a user edit: a scripted commit by path took the
+user's hunk. The line now says to commit only your own hunks there (user, 2026-10-27). In 24 of 24 runs, Sonnet and Haiku
+kept the user's work out of the commit with or without the rule; only the no-trailer rule changed what they did.
+With another session's file staged, the guard then allowed only that commit by path and blocked both safe ways (a
+staged hunk plus a plain commit, a temporary-index commit), and it let `git commit -a` through in app repos (all
+measured 2026-10-28). It now allows a commit from a temporary `GIT_INDEX_FILE` and blocks `-a`; the recipe passed the
+eval's checks and the guard step by step (samples in `guards-test.sh`).
+
+## Video transcripts (ENVIRONMENT.md "Accounts and tools")
+
+yt-dlp caption downloads returned HTTP 429 on 4 of 5 videos over 2026-10-27 and 10-28; one first try succeeded with a later plain fetch of the same caption URL. Trying other YouTube clients to get past the limit was refused by the auto mode classifier as bot-check circumvention, and the user asked for delay and jitter instead. `scripts/yt-transcript.py` does that. Its first run (2026-10-28, three Shorts) got the metadata for all three but a 429 on all 18 caption attempts, about 30 minutes per video, so the limit on this address outlasted the backoff. The audio download was not limited, so the script now falls back to it and transcribes locally with faster-whisper (the approach of georgewangyu/georgeskills `youtube-transcribe-ops`): all three Shorts transcribed, one end to end in 34 s.
+
 ## Router notes
 
 - Animation skills installed 2026-09-06 from emilkowalski/skills (author of Sonner and Vaul, both used in
@@ -60,7 +77,7 @@ removed 2026-09-08; agents now use `chrome-devtools-axi`.
   (2026-09-08).
 - `review-diff` measured 23k tokens against 1.41M for an agent exploring the repo.
 - `banana` and `interior-redesign` removed 2026-10-15; vendor `paseo*` skills removed 2026-10-15, at the
-  user's request.
+  user's request. Paseo itself (CLI, daemon, `~/.paseo`) uninstalled 2026-10-23, at the user's request.
 - Answer shape adapted from the an answer-style skill skill, de-conflicted 2026-09-09.
 - RULES.md absorbed and replaced the `karpathy-guidelines` and `agent-guidelines` skills (2026-07-06).
 

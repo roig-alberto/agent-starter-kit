@@ -32,7 +32,8 @@ obvious at a glance.
 > 4. **The semantic color meanings**: which token = positive/success, negative/error, warning,
 >    informational - plus any **domain-specific accent roles** in this product.
 > 5. **Any gradients** as exact CSS (e.g. a status/pace line).
-> 6. **The spacing scale** and the **icon library** name + stroke weight (e.g. Lucide vs Heroicons).
+> 6. **The spacing scale** and the **icon library** name + stroke weight: one of Heroicons, Font Awesome or Nucleo (the user's rule, see
+>    `frontend-design` standout checklist).
 > 7. **The application icon as inline SVG** - a primary version and a full-bleed/maskable-safe
 >    variant - plus the exact brand colors it uses.
 > 8. Output as plain code blocks (CSS variables + JS config + SVG), not prose.

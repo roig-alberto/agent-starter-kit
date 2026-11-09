@@ -11,7 +11,7 @@ Each of these cost a debug pass or a broken deploy. The one-line versions are in
   it.** Adding only the tunnel hostname (`['dev-loop.example.com']`) silently dropped
   `127.0.0.1`/`localhost`, so every page still rendered server-side and returned **HTTP 200 while
   React never hydrated** on localhost - no gestures, no buttons, no client navigation. Always
-  include the localhost origins alongside the tunnel host. (loop, 2026-08-30)
+  include the localhost origins alongside any other dev host. (loop, 2026-08-30)
 - **A per-item Server Action that reshapes the list it is rendered from = runaway cascade**, because
   invoking a Server Action auto-refreshes the current route. loop's resurface flow read
   `cards[index]` straight from the server prop and called `markResurfaceShown` in a per-card
@@ -60,3 +60,6 @@ Each of these cost a debug pass or a broken deploy. The one-line versions are in
   Client Component"). personal-dash convention: `server-only` is fine only if no worker
   imports it; shared derive/read logic (`computeGoal`, `lib/objectives/metrics.ts`) stays
   plain. Client components type-import safely (erased).
+- **Never turn on production source maps** (`productionBrowserSourceMaps`, or `build.sourcemap` in a Vite
+  app). They hand the whole client source to anyone who opens DevTools. No app here enables them (checked
+  2026-10-23); keep it that way.

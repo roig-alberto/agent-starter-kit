@@ -46,3 +46,19 @@ The user capped effort at high: never `xhigh` or `max`. The low / medium / high 
 Anthropic's "Spending your effort" post (read 2026-10-20 through a summary): implement and iterate at low, verify and
 test on high, and higher effort fixed missed edge cases rather than a wrong approach (one task went from 1 of 5 at
 low to 5 of 5 at xhigh, which this cap gives up on purpose). Agent Factory's effort list dropped `max` the same day.
+
+## A cheap writer plus a cheap reviewer loses to one strong pass (measured 2026-10-29, mentor)
+
+Three trials of 20 video quick notes each, every note audited by Opus against its transcript. Sonnet alone:
+8,600 agent tokens a clip, 12 wrong items in 7 notes. Sonnet plus a Sonnet reviewer with a tighter prompt:
+20,400 tokens, 1 wrong, 7 missed key ideas. One Opus pass: 9,300 tokens (about 18,600 Sonnet-equivalent at
+list price), 2 small wrong, 2 missed. Caveat: Opus audited Opus. Data: mentor `library/DECISIONS.md`, "Tried and
+did not work".
+
+## A loose shared rule read three ways by parallel agents (2026-10-29, mentor)
+
+Unscripted's marker prompt said a `[Ref]` is "a book, author, course, tool or other resource". Round 1 fixers
+invented "brands, platforms and people get none", the orchestrator passed that on in its briefs, and later
+auditors flagged films named as examples for removal; each fixer swept its part a different way, about 100
+marker findings over 3 rounds. What held: the rule with its edge cases written once in the prompt file
+(`library/prompts/markers.md`, "What counts") and every brief pointing at that file.

@@ -25,7 +25,7 @@ An always-on MCP server is the cheapest thing to cut: `ha-mcp` cost **1,115 per 
 until it was moved to on-demand loading (ENVIRONMENT.md). The four claude.ai connectors cost only **128
 per turn** together, so measure before removing something you use.
 
-The finding format, the triage into Act on and Dismissed, and when to use an exploring reviewer instead
+The finding format, the triage into Fixed, Left and Dismissed, and when to use an exploring reviewer instead
 live in the `review` skill.
 
 ## Which model reviews (measured 2026-10-20)

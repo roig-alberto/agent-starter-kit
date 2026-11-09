@@ -36,6 +36,9 @@ costs more than the saving.
   value, path, and prior result the executor needs.** The executor starts BLIND and cannot do "log
   archaeology", so an under-briefed cheap agent guesses and does worse; Haiku has the least headroom to
   recover.
+- **Many parallel agents sharing a judgment rule read it from one file.** Write the rule once, with its edge
+  cases, in a file every agent reads, and point each brief at it; a loose rule restated per brief was read
+  three ways by 15 agents (`references/history.md`).
 - **Use the executors already wired:** `cavecrew-investigator` on haiku (locate), `cavecrew-reviewer` on
   haiku (review), and `cavecrew-builder` on sonnet (bounded edit), or the `Agent` tool's
   `model: sonnet|haiku`. Planning stays on the Opus main thread.
@@ -46,6 +49,9 @@ costs more than the saving.
 - **Verify that Sonnet or Haiku holds quality on a NEW task class with `agent-tool-bench`.** Never assume
   it. When the `sonnet` or `opus` alias moves to a new model, rerun the reviewer eval
   (`agent-tool-bench/references/review-eval/`) before trusting the old verdicts.
+- **Before adding a review pass to a cheaper model, measure one pass of the stronger model at the same
+  budget.** A Sonnet writer plus a Sonnet reviewer cost about what one Opus pass did and missed more
+  (`references/history.md`).
 - **Effort is capped at high (user, 2026-10-20): never `xhigh` or `max`,** in a session, a subagent, or an
   Agent Factory step. Use **low** to sketch, plan or iterate, **medium** for ordinary implementation (Claude
   Code's default), and **high** to verify, fix a bug in existing code, or review. Higher effort catches

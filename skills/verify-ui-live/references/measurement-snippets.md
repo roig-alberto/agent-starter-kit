@@ -146,8 +146,9 @@ on a throwaway row you created, never a real one.
 
 ## Driving gestures with synthetic PointerEvents (the dispatch-target rule)
 
-`browser_click` / Playwright `dragTo` / HTML5 DnD **silently no-op** on pointer-gesture UI. Dispatch
-raw `PointerEvent`s instead - and **match the dispatch target to WHERE the library listens**:
+`browser_click` / Playwright `dragTo` / HTML5 DnD **silently no-op** on pointer-gesture UI (`dragTo`
+jumps in one move; a stepped `page.mouse` drag works, multi-step-flows.md 0c). Where there is no mouse
+(`ui-check --js`), dispatch raw `PointerEvent`s instead - and **match the dispatch target to WHERE the library listens**:
 
 | Gesture kind | Dispatch `pointerdown` on | Dispatch `pointermove`/`pointerup` on |
 |---|---|---|

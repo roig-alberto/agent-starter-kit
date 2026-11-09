@@ -52,13 +52,12 @@ motion should FEEL once the library is chosen belongs to `animate`.
 - **Hold a gesture's live values in refs, not state.** State updates are batched, so a fast flick reads
   stale values and does nothing.
 - **Make optimistic UI the norm**: update locally, persist in the background, and reconcile on the server
-  round-trip.
+  round-trip. Build every screen with the six phone defaults in `references/phone-defaults.md` (skeletons,
+  cached first, hit slop, one-time code, tabular numbers, balanced headings).
 - **Parse every `inputMode="decimal"` value with a shared `parseDecimal`** that accepts a comma, because
   EU keyboards emit "," and `Number("68,5")` is `NaN`.
 - **Mount exactly one `<Toaster />` at the root and call `toast()` only from client code.** A second
   Toaster doubles every toast, and `toast()` does nothing on the server.
-- **Set the Toaster theme explicitly** (`theme="system"` or the resolved theme), because it defaults to
-  `'light'` and ignores the OS.
 - **Kill the tap-highlight box globally** in every app's `globals.css` with
   `-webkit-tap-highlight-color: transparent` and `:focus:not(:focus-visible) { outline: none; }`.
 - **Send iPhone dock and shell work to `ios-pwa-dock` FIRST.** It has the shell checklist, the launch
@@ -145,6 +144,8 @@ motion should FEEL once the library is chosen belongs to `animate`.
 - `references/sonner-troubleshooting.md`: every Sonner symptom with its cause and fix.
 - `references/sonner-api.md`: every `<Toaster />` prop, `toast()` option and function, with types and
   defaults.
+- `references/phone-defaults.md`: the six phone defaults with their Tailwind classes and attributes. Read it
+  before building any screen.
 - `references/css-svg-gotchas.md`: daisyUI OKLCH tokens, library CSS variables, the tap box, iOS
   `feDropShadow`, percentage-height bars, and decimal commas.
 - `references/history.md`: provenance, the dates behind each trap, and the 2026-10-15 merge.

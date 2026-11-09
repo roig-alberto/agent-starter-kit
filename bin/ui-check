@@ -65,8 +65,8 @@ def main():
     # networkidle never settles on a page holding an open SSE/WebSocket stream (live screens):
     # use --wait load there; it then gives the page 1 s to render before measuring.
     ap.add_argument("--wait", choices=["networkidle", "load"], default="networkidle")
-    # Agent Factory D143: listen to the browser too. Errors = uncaught page errors and failed page loads, fetch or XHR
-    # calls to the page's own origin (4xx/5xx or no answer; /favicon.ico ignored). Warnings = console.error lines and
+    # Agent Factory D143: listen to the browser too. Errors = uncaught page errors and failed page loads, scripts,
+    # stylesheets, fetch or XHR calls to the page's own origin (4xx/5xx or no answer; /favicon.ico ignored). Warnings = console.error lines and
     # other failed requests. Reported on a second line, CONSOLE {json}; it does not fail the check (the caller decides).
     ap.add_argument("--console", action="store_true",
                     help="report uncaught errors and failed own-origin requests (errors) and console.error and "
@@ -114,7 +114,9 @@ def main():
                 pu = urlparse(url)
                 if pu.path == "/favicon.ico":
                     return
-                own = f"{pu.scheme}://{pu.netloc}" == origin and rtype in ("document", "fetch", "xhr")
+                # A script or stylesheet of the page's own (a dev server's modules) that fails leaves a blank page
+                # (Agent Factory FACTORY-23: Vite modules lost to net::ERR_NETWORK_CHANGED passed as warnings).
+                own = f"{pu.scheme}://{pu.netloc}" == origin and rtype in ("document", "fetch", "xhr", "script", "stylesheet")
                 note("errors" if own else "warnings", text)
             page.on("pageerror", lambda e: note("errors", f"uncaught: {(str(e).splitlines() or ['(no message)'])[0]}"))
             # The favicon's own "Failed to load resource" line is noise too.

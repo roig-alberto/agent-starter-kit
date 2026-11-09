@@ -2,7 +2,7 @@
 # autopush-knowledge.sh - Stop-hook durability net.
 #
 # Why: a skill / rule / memory that lives ONLY on this box dies with it. The
-# planned Windows+WSL2 -> Proxmox move (portability skill) demands every
+# rebuild of the home base (portability skill; the 2026-10-27 Ubuntu move) demands every
 # knowledge artifact already be in its GitHub repo. This commits+pushes any
 # pending changes in the two knowledge repos at each turn end, so "created a
 # skill" always implies "it is in the repo".
@@ -137,6 +137,15 @@ LINT_OUT="$(python3 "$HOME/.claude/scripts/knowledge-lint.py" --quiet 2>&1)"
 LINT_OK=$?
 printf '%s\n' "$LINT_OUT" > "$HOME/.claude/knowledge-lint.last"
 GATED_RE="^($HOME/.agents/skills|$HOME/.claude)$"
+
+# 2026-10-26 retro: a host script edited in dev-system and never installed went unseen three times (once a backup
+# lacked an app's secrets for weeks). When dev-system has changes this turn, compare the deployed copies now; a
+# difference goes to Telegram (this hook runs async, so the agent cannot see it), once a day per message.
+for r in "${REPOS[@]}"; do
+  [ "$(basename "$r")" = dev-system ] && [ -n "$(git -C "$r" status --porcelain 2>/dev/null)" ] || continue
+  DRIFT="$(python3 "$HOME/.claude/scripts/box-checks.py" deploy-sync 2>/dev/null | python3 -c 'import json,sys; print("; ".join(p["title"] for p in json.load(sys.stdin)["problems"]))' 2>/dev/null)"
+  [ -n "$DRIFT" ] && loud "dev-system changed and a deployed copy differs: $DRIFT"
+done
 
 for r in "${REPOS[@]}"; do
   clear_stale_lock "$r"

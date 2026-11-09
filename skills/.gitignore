@@ -5,3 +5,9 @@ agent-tool-bench/references/router-eval/*.gitcheck
 
 # review-eval run outputs quote private repo code: local only
 agent-tool-bench/references/review-eval/out/
+
+# dirty-tree-eval run outputs (regenerable)
+agent-tool-bench/references/dirty-tree-eval/out/
+
+# Python bytecode
+__pycache__/

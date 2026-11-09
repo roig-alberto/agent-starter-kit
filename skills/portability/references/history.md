@@ -62,3 +62,38 @@ Adding shadcn + tw-animate-css: `npm install` on the host did not reach the dev 
 anonymous `- /app/node_modules` volume shadows the host's. Symptom: a 500 / "Can't resolve `<pkg>`" for a
 package plainly in `package.json`. Fix: `docker exec <app>-web-dev-1 npm install`, then restart that
 container.
+
+## Before the native Ubuntu rebuild (retired text, 2026-10-27)
+
+On 2026-10-27 the fleet moved from WSL2 on Windows to a native Ubuntu host, and every app moved from Cloudflare tunnels to Tailscale sidecars. The lines below were true on the WSL2 host and are kept verbatim.
+
+### Former description
+
+Keeps the self-hosted fleet movable to a fresh host (WSL2 to bare-metal Proxmox). Use WHENEVER editing a
+docker-compose.yml or Dockerfile, adding or removing a service, volume, port, image or secret, wiring a
+backup, touching host pieces (systemd, tg-alert, NAS creds), relocating anything stateful, or updating
+any pin or framework. Trigger on 'add a service', 'map a volume', 'change the backup', 'edit
+the compose', 'bump the image', "migrate", "move the app", "host move", "onto Docker CE", "into WSL",
+"Proxmox migration", "update X", "upgrade Next/node/postgres", "npm audit", "are my deps outdated", or a
+CVE ask. NOT for ports or tunnels (use fleet-ops), the backup pipeline (use backups-and-alerts), or
+scaffolding a new app (use new-app).
+
+### Former invariant 6, migration rule and gotcha
+
+6. **Tunnels are named and token-based** (`TUNNEL_TOKEN`), never a host-bound quick tunnel. A token
+   tunnel reconnects from any host.
+
+- Follow the existing recipe for the migration type; each one already paid for its mistakes. An existing
+  app onto Docker CE follows the Phase-3/closet migration recipe in dev-system
+  (`~/projects/dev-system`, PLAN.md and REBUILD.md). The fleet onto Proxmox
+  (after Phase 7) is a mechanical replay of dev-system `REBUILD.md` plus PLAN.md, which is what part 1
+  protects. A repo from /mnt/c to WSL-native is small but stateful-adjacent; see Gotchas.
+
+- **A repo moved from /mnt/c into WSL misbehaves.** Remove `WATCHPACK_POLLING`, pin the compose project
+  name (invariant 7), and replace Windows path references with WSL paths in scripts and skills.
+
+- **The Proxmox plan seems to require heroics.** An invariant was violated somewhere; fix it, and the move
+  becomes a replay of REBUILD.md again.
+
+Former dev-system path: `~/projects/dev-system`. Former Part 2 heading: "migrations (an app onto Docker CE, a repo into WSL, the fleet onto Proxmox)". The `cloudflare/cloudflared` pin row (each app's compose and the bootstrap templates) left `references/pin-sync.md` with the tunnels.
+Former invariant 1 example: never `/mnt/c/...`. Former fleet grep after a bump: `grep -rn "<old-tag>" ~/projects/*/docker-compose.yml ~/projects/*/*Dockerfile* ~/projects/dev-system ~/.agents/skills`.
