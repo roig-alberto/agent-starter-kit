@@ -72,6 +72,8 @@ because it was copied from the code, and a "test" that wrote to the shared datab
 
 - **Assert values and side effects that matter, not existence or call counts** (`expect(total).toBe(42.5)`,
   never just `toBeDefined`). A test is only useful if it fails when the logic breaks.
+- **Test every decision both ways and at its boundary** (a guard, filter, limit, threshold, parser, keep rule): the
+  case it refuses AND the case it lets through, then one `mutate.sh` run that goes red. One-way, it stays green while wrong.
 - **A test changes only when the spec changed.** Never skip, delete or loosen one to reach green (floor guard).
 - **Never compute the expected value the way the code does.** Such a test passes by construction; take the
   value from the spec, a worked example, or a known-good literal.
@@ -100,7 +102,6 @@ because it was copied from the code, and a "test" that wrote to the shared datab
   account with identifiers on the reserved `.invalid` TLD; dev is not isolated on this fleet.
 - **Freeze the clock, not a date literal.** Use `vi.setSystemTime(...)` in `beforeEach`; a frozen
   `new Date("2026-01-15")` next to a live `dayKey()` fails on some future date.
-- **Fixtures are anonymized only.** Never commit real personal data as a fixture.
 
 ## Isolated write path (any stack)
 
@@ -145,11 +146,10 @@ app on the scratch port 3099) and the MySQL, SQLite, managed, and bare-process v
 
 ## References
 
-- `references/running-tests.md`: where tests live, per-app run commands, the worktree recipe, the CSRF header.
-- `references/fixtures-and-write-paths.md`: fixture scoping, the frozen-date trap, migrations on real data.
+- `references/running-tests.md`: where tests live, per-app run commands, the vitest TMPDIR setup, worktrees, CSRF.
+- `references/fixtures-and-write-paths.md`: fixture scoping, frozen dates, secret-shaped fixtures, migrations.
 - `references/isolated-db-recipes.md`: read before isolating a database; copy-paste recipes for every stack,
   the vitest server-action harness, and related skills.
-- `references/mutation-checks.md`: read before proving a guard with a mutation (`scripts/mutate.sh`) or moving
-  everything of a kind into a registry (completeness test first).
+- `references/mutation-checks.md`: proving a guard with `scripts/mutate.sh`, echoed output markers, completeness tests.
 - `references/history.md`: every incident and measurement behind these rules; read it when a rule seems
   excessive.

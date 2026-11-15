@@ -4,10 +4,17 @@
 # test catches the bug), 1 when it stayed green, 2 when the mutation could not be applied or restored.
 # Usage: mutate.sh <file> <exact-old> <exact-new> -- <test command...>
 # Why: hand-written sed/perl mutations silently did not apply (regex syntax in code) and read as "weak test";
-# unbounded test runs crashed the box twice (HARVEST 2026-10-25/26).
+# unbounded test runs crashed the box twice (HARVEST 2026-10-25/26). The test must pass on the unmutated file first: a
+# command that cannot start (no user bus inside an Agent Factory build, 2026-11-13) used to read as "caught".
 set -u
 [ $# -ge 5 ] && [ "$4" = "--" ] || { echo "usage: mutate.sh <file> <exact-old> <exact-new> -- <test command...>" >&2; exit 2; }
 f=$1 old=$2 new=$3; shift 4
+# No bytecode cache: the first run's .pyc could hide a same-size mutation made within the same second.
+export PYTHONDONTWRITEBYTECODE=1
+# The memory cap needs a user bus; without one (an Agent Factory build) the service's own cap bounds the run.
+if systemd-run --user --scope -q true >/dev/null 2>&1; then cap() { systemd-run --user --scope -q -p MemoryMax=2G "$@"; }
+else cap() { "$@"; }; fi
+cap timeout 120 "$@" >/dev/null 2>&1 || { echo "not judged: the test command fails before any mutation (exit $?); fix the command first" >&2; exit 2; }
 backup=$(mktemp) && cp -p "$f" "$backup" || exit 2
 restore() { cp -p "$backup" "$f" && rm -f "$backup"; }
 trap restore EXIT INT TERM
@@ -21,7 +28,7 @@ if n != 1:
 open(p, "w").write(s.replace(old, new))
 PY
 cmp -s "$f" "$backup" && { echo "mutation not applied: file unchanged" >&2; exit 2; }
-systemd-run --user --scope -q -p MemoryMax=2G timeout 120 "$@" >/dev/null 2>&1
+cap timeout 120 "$@" >/dev/null 2>&1
 code=$?
 restore; trap - EXIT INT TERM
 [ -f "$backup" ] && { echo "restore failed: $f" >&2; exit 2; }

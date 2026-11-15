@@ -44,6 +44,7 @@ prevents wasted work, a hidden decision that an implementing agent guesses, and 
    the source of truth for the whole build. Use the template, the phase ticket shape, and the cutting rules
    in `references/plan-format.md`. Read `CODEMAP.md` and `ARCHITECTURE.md` first when the repo has them, and
    add a phase task to update them when the plan moves ownership, data, a boundary or a main folder.
+   Name each test's oracle and each state rule as a function in this first draft (same file).
    For a hand-off plan or one with three or more phases, then run `review` on the plan file and settle
    every confirmed finding (fix it, or take it to the user as a decision) before step 5.
    Done when: the file exists, every phase passes the two-reader check in `references/plan-format.md`,

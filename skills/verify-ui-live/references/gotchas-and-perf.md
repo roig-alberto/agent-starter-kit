@@ -304,6 +304,21 @@ output == server output. **Test only the new seam.** (glow, 2026-08-12)
 - **Every page times out while `curl` works:** count server requests during the attempt
   (`rtk proxy docker logs <c> 2>&1 | grep -ac 'GET /'`). A request per frame is a client reload loop (a Next 16
   `turbopack.rules` entry for Tailwind did it in Shelf), not a slow page.
+- **A tap that navigates kills the `ui-check --js` context.** Proving Triage's "Mark fixed" (it returns to the list)
+  failed with "Execution context was destroyed" and a blank screenshot; a named `chrome-devtools-axi` session also
+  ignored `resize 390 844` and returned `code: UNKNOWN` for `eval`. What worked: read the state change from the API
+  after the tap. To see the next page too, click through `setTimeout` so the snippet returns first, then screenshot
+  the next page (agent-factory, 2026-10-26).
+- **Headless WebKit cannot time motion.** Under box load 2 to 3 its animation clock runs slow (64 ms frames), so a
+  450 ms CSS transition measured about 620 ms of wall time. Assert the computed `transition` value, the many
+  in-between frames and the arrival instead (lumo, 2026-10-23).
+- **`drawImage` of a WebGL canvas reads back 0 pixels** when the context has no `preserveDrawingBuffer`. Take
+  `page.screenshot(clip=...)`, decode the PNG with zlib in Python (the Playwright venv has no PIL) and count ink
+  pixels (lumo, 2026-10-23).
+- **A missing export right after a scripted whole-file write is a race, not a bug.** A Python `open().write` of a
+  Vite-served file raced the watcher: Vite served it empty and the browser said "does not provide an export named
+  'App'" while the file on disk was complete. `touch` on the file fixed it; a rerun first blamed the code (bench,
+  2026-10-29).
 - **Playwright `ctx.request` does not send a `Secure` session cookie to `http://127.0.0.1`**, so API calls get 401 after
   a 200 login. Log in and call the API from the page with `page.evaluate(fetch)`.
 

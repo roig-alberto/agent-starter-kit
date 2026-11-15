@@ -92,3 +92,10 @@ this skill and fires whenever it loads for a design task.
 The user picks accents by comparison board, not from a single mock (`ui-examples3.png` and
 `ui-examples4.png` are exactly that shape). Accents close to green or red were rejected because green
 (done) and red (destructive or exclude) are already spoken for.
+
+## Liked-UI examples retired (2026-11-10)
+
+The user asked to stop using the liked-UI example images ("no las quiero usar más") after a closet Viajes colour
+board leaned on them (an ice-blue accent and accent halos). The images, `references/ui-examples.md`, the bundle
+copy step and the halo gotcha were removed; git history in claude-skills keeps them. The sections above that
+mention `ui-examples*.png` describe the old practice.

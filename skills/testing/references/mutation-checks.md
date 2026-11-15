@@ -10,12 +10,20 @@ a "move everything" refactor with a completeness test, not a hand inventory.
 ```
 
 - Exit 0 = the test went red on the mutant (good); 1 = it stayed green (a weak test: fix the test); 2 = the mutation
-  could not be applied or the file could not be restored.
+  could not be applied, the file could not be restored, or the test command already failed before any mutation
+  ("not judged": fix the command first; a command that cannot start once read as "caught").
 - The replacement is literal and must match exactly once. Hand-written `sed` or `perl -pi` mutations silently did not
   apply here (parentheses, `?` and `|` in code are regex syntax), and "still green" read as a weak test.
 - It runs the test under `systemd-run --user --scope -p MemoryMax=2G timeout 120` and always restores the file. An
   unbounded mutation loop crashed the box twice (2026-10-25/26).
 - Run an unmutated control first: the plain test command must be green, or every mutant "is caught".
+
+## A marker the command line echoes proves nothing
+
+A test asserted that a marker appears in a command's output, and it passed with the fix switched off: the output
+echoes the command line (`$ <command>`), which held the marker text. Build the marker at run time so only real output
+can contain it: run `echo FAIL$((1+1))END` and assert `FAIL2END`. The mutation check caught it (agent-factory,
+2026-10-26).
 
 ## A completeness test before trusting an inventory
 

@@ -26,6 +26,14 @@ docker compose run --rm dev sh -c "npx tsc -b --noEmit"
 Safety net: Agent Factory's "Main is red" loop also runs every board repo's checks each Sunday and files a green to
 red change to Triage, so drift that lands between sessions surfaces within a week even if no one opens the repo.
 
+## Keep temp folders out of /tmp: a vitest globalSetup sets TMPDIR
+
+Tests that call `mkdtemp(tmpdir())` and miss a cleanup leak folders: agent-factory left about 30,000
+`/tmp/af-*` entries in two weeks across dozens of test files (2026-10-24). One fix covers every file: a vitest
+`globalSetup` that sets `process.env.TMPDIR` to a fresh folder per run and returns a teardown that removes it.
+The workers inherit it, and `os.tmpdir()` reads TMPDIR on each call. Add one test that asserts `tmpdir()` sits
+inside that folder. A full run then left 0 new entries. Use it in every repo with vitest.
+
 ## Testing a checkout OUTSIDE the bind mount (worktree, agent copy)
 
 The image's node_modules is STALE. Aro's `web-dev` mounts `./:/app` plus an anonymous `/app/node_modules`

@@ -15,6 +15,10 @@ git ls-files --others --exclude-standard  # untracked files are part of the chan
 uncommitted work only. A named target (a commit, a file, a ref range) replaces the default. Check that the
 ref resolves (`git rev-parse <ref>`) and the diff is not empty before starting a reviewer.
 
+Every `review-diff` result is also saved under `~/.local/state/review-diff/`, and the stderr summary line names
+the file. Read that file instead of re-running a review whose output was cut (a `| tail` lost the top findings
+three times, HARVEST 2026-10-22 and 2026-10-26).
+
 ## The reviewer's order
 
 The `review-diff` prompt already asks for this; a subagent reviewer gets it in its brief.

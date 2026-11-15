@@ -12,6 +12,7 @@ These are imperatives, not tips. The evidence behind each one is in `~/.claude/H
 ## Verify and calibrate
 
 - Confirm every claim of success with a command, a test run, or a DOM measurement. "It compiles" is not "it works"; quote failures verbatim.
+- Every check must be able to fail. For code that decides (a guard, filter, limit, threshold, parser, classifier, keep rule, an `if` that matters), test both outcomes and the exact boundary, in plans and task text too. Prove each new test with one `mutate.sh` run that goes red (`testing`).
 - Label each claim by its evidence: measured (you ran it), cited (a source says it), inferred (show the chain), or guess. Say what you did not check.
 - When unsure, say so and name the check that would settle it. Grep the code, run `--help`, or read the docs instead of recalling an API.
 - Before ending a turn, re-read the request and either finish each open sub-task or say exactly what blocks it.
@@ -23,7 +24,7 @@ These are imperatives, not tips. The evidence behind each one is in `~/.claude/H
 - The user is the PM and architect and works from a phone; agents are the developers. Bring plans and decisions to them to approve, edit or reject, never code or terminal steps to do.
 - State assumptions. When a request has several readings, present them instead of picking one silently.
 - Over-clarify rather than rebuild: for any ambiguous scope, ask in rounds of plain-word questions (every decision answerable now, numbered), each with a recommended answer, as many rounds as it takes, until you can state scope, non-goals, and done criteria. For small mechanical choices, pick the convention and say so.
-- Measure the real data before designing a heuristic, threshold, or classifier. Intuition was wrong four times in a row here. Any rate measured over a window needs a minimum-window floor, or new cases score best.
+- Measure the real data before designing a heuristic, threshold, or classifier. Intuition was wrong four times in a row here. Any rate measured over a window needs a minimum-window floor, or new cases score best, and starts after the last change that affects it.
 - Say when a simpler approach exists, and push back when it is warranted.
 
 ## Scope and simplicity
@@ -61,7 +62,7 @@ poteto-mode's reply rules. Short, but never fragments.
 ## Tools and shell
 
 - Batch independent tool calls. Read a file before editing it.
-- A filtered view is not the whole view. Before concluding "nothing matches", re-run through `rtk proxy <cmd>` or count with `grep -c`, and use `grep -a` on container logs. Details in `RTK.md`.
+- A filtered view is not the whole view. Before concluding "nothing matches", re-run through `rtk proxy <cmd>` or count with `grep -c`, and use `grep -a` on container logs. Search with the repo's own words (GLOSSARY.md, CODEMAP.md), not yours. Details in `RTK.md`.
 - Python agent tools live in per-tool `uv tool` venvs. Check `which <bin>` and `uv tool list` before calling one missing.
 - Run `sudo` work as `sudo /bin/sh -c '...'`, because the rtk hook breaks `sudo <cmd>` silently.
 
@@ -77,7 +78,7 @@ poteto-mode's reply rules. Short, but never fragments.
 ## Git and secrets
 
 - In an app repo, commit only your own changes with `git commit -m '...' -- <paths>`, never `git add -A` or `git add .`; the user's other work sits uncommitted, sometimes already staged, in the same tree (the guard blocks a plain commit that would take it). When a file you changed also holds the user's edits, a commit by path takes them too: commit only your own hunks from a temporary index (the guard's message gives the steps). Recovery: `git reset -q HEAD~1`, then re-commit by path. `git add -A` is fine in the knowledge repos.
-- Guards enforce the git, sudo, dash and trailer rules for every agent. A pre-command guard (`scripts/agent-guard.py`, in Claude Code and OpenCode) blocks bare `sudo`, `git add -f`, `git add -A` and `git commit -a` in app repos and destructive git. Global git hooks (`~/.claude/git-hooks/`) block secrets (by content, and `.env*` or `secrets/` files by name, templates excepted), a valid IBAN, agent trailers, long dashes, a force push, and a commit that weakens a check (the floor guard).
+- Guards enforce the git, sudo, dash and trailer rules for every agent. A pre-command guard (`scripts/agent-guard.py`, in Claude Code and OpenCode) blocks bare `sudo`, `git add -f`, `git add -A`, `git commit -a` and `>` onto a tracked file in app repos, destructive git, and a check chained to a commit, push or deploy without `&&`. Global git hooks (`~/.claude/git-hooks/`) block secrets (by content, and `.env*` or `secrets/` files by name, templates excepted), a valid IBAN, agent trailers, long dashes, a force push, and a commit that weakens a check (the floor guard).
 - When a guard blocks, fix the cause. Never bypass it: `--no-verify` is blocked too. A real test or checker change carries `Floor-change: <which spec line and why>` in the commit message. A force push the user asked for is theirs to run with `ALLOW_FORCE_PUSH=1`. Samples: `bash ~/.claude/scripts/guards-test.sh`.
 - Every secret must reach the NAS backup bundle. Secrets in an app's `.env` or `secrets/` are covered; anything else on the host goes into dev-system `scripts/secrets-backup.sh` in the same change.
 
@@ -107,7 +108,7 @@ Load the skill before acting. If nothing matches, say so and work under these ru
 |---|---|
 | Work on an existing app | `one-shot` add, change, or fix something in an existing app (it calls the others) · `debugging` something is broken or got slow and the cause is unproven · `backend-patterns` endpoint, server action, schema, migration, validation, auth, money, dates · `testing` tests in our apps, or proving a write, commit or migration path without touching real data |
 | Start or shape work | `new-app` a new app or project from scratch · `plan` "plan this", a plan or tickets for another agent · `grill-me` "grill me", stress-test a plan before building · `prototype` "show me a few versions", live UI variants, or a clickable walkthrough of a flow before building it · `architecture` ADRs, "why did we choose X", glossary, code map for agents · `research-decision` a library or approach decision, "X vs Y" |
-| UI | `frontend-design` a new visual direction, "make it look good", the user's liked-UI examples, a design hand-off · `frontend-interaction-patterns` gestures, drag and drop, sheets, bottom nav, toasts (Sonner), picking a library or a shadcn or Radix primitive · `animate` any web animation: build, review, audit, polish, name an effect, copy motion from a screen recording, "feels janky" · `ios-pwa-dock` the iPhone PWA shell: dock, safe areas, status bar · `pwa-patterns` manifest, service worker, push, offline, stale after deploy · `responsive-desktop-port` a phone-first app on a desktop or wide screen · `claude-design-craft` wireframes, artboards, posters as plain HTML files · `brandkit` a logo, brand kit or visual identity as one brand-board image |
+| UI | `frontend-design` a new visual direction, "make it look good", a design hand-off · `frontend-interaction-patterns` gestures, drag and drop, sheets, bottom nav, toasts (Sonner), picking a library or a shadcn or Radix primitive · `animate` any web animation: build, review, audit, polish, name an effect, copy motion from a screen recording, "feels janky" · `ios-pwa-dock` the iPhone PWA shell: dock, safe areas, status bar · `pwa-patterns` manifest, service worker, push, offline, stale after deploy · `responsive-desktop-port` a phone-first app on a desktop or wide screen · `claude-design-craft` wireframes, artboards, posters as plain HTML files · `brandkit` a logo, brand kit or visual identity as one brand-board image |
 | Prove it works | the repo's `verify-<app>` skill if it exists, else `verify-ui-live` to verify a UI change · `create-verification-skill` an app has no verify skill yet, or its feature map drifted · `review` "review this", a second opinion on code, a plan, a spec or a repo's architecture |
 | Box and infra | `portability` compose, Dockerfile, volumes, images, a host move, bumping a dependency, image or framework (first, then the next two) · `fleet-ops` ports, tunnels, box slow or disk full, "prune", packaged images (Kuma, Beszel, Dockhand, Homepage, "self-host X") |
 | Agent setup | `knowledge-authoring` create or edit a skill, rule, AGENTS.md or memory, or evaluate a skill · `retro` "retro", "what did we learn", process the HARVEST inbox, trim memory · `skills-audit` audit all the knowledge against the live system · `agent-tool-bench` is an agent tool worth it, A vs B for the agent loop · `model-tiering` which model, delegating to a cheaper one, what a review costs |

@@ -141,3 +141,10 @@ plugin-verdicts.md, 2026-09-06) had already shown higher cost per run with it on
 Update 2026-10-16: the user uninstalled the caveman plugin. The three `cavecrew-*` agents were copied into
 `~/.claude/agents/` (tracked in this repo), so nothing that used them changed. The plugin's builder model
 override had never applied (agent-tool-bench plugin-verdicts.md); the copy sets `model: sonnet` itself.
+
+## Every check must be able to fail (2026-11-09)
+A reel (a dating app's bot guard passed every test while refusing every real user for 40 minutes) led to a "test a
+guard both ways" rule in `testing`. The same day the agent filed a factory task with a one-way test until the user
+asked, because the skill loads only when writing tests; the user then asked why only guards. The rule moved to RULES.md
+(applies to plans and task text) and widened to any decision code. Seen here: FACTORY-102 (permission rules refused
+`grep`), the climb's keep rule (first tests mostly rejections), the manager's 3,000-character cut (FACTORY-106).

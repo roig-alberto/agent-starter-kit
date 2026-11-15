@@ -96,6 +96,9 @@ Each of these is an automatic block in `review-animations`. Check them before yo
 - A child's transform driven from a CSS variable on the parent recalculates every child; set
   `transform` on the element directly.
 - An ungated `:hover` motion fires on tap; wrap it in `@media (hover: hover) and (pointer: fine)`.
+- Motion 13 (vanilla `animate`) reads a `"none"` transform keyframe as zeros: `transform: [from, "none"]`
+  ended at `scale(0)`, invisible, with no error. End on an explicit identity
+  (`translate(0px, 0px) scale(1) rotate(0deg)`).
 - A missing `prefers-reduced-motion` branch hurts motion-sensitive users; add a gentler variant,
   not zero (`useReducedMotion()` in JS).
 - Everything entering at once reads as a flash; stagger by 30-80ms.

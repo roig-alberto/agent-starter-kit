@@ -50,6 +50,9 @@ visibility-default, and auto-classifier gotchas that were learned the hard way.
   the recipe in `references/recipes.md`. Do not rename an existing repo's branch.
 - **A gh command wrapped in sudo fails.** rtk and sudo collide on this box; this is irrelevant to gh
   itself, so simply do not wrap gh in sudo.
+- **Making a repo public has three traps** (`references/recipes.md`): review the whole tree, rewrite commit
+  metadata to the no-reply email, and flip visibility with `gh api`, because `gh repo edit` needs an
+  interactive confirm.
 
 ## References
 

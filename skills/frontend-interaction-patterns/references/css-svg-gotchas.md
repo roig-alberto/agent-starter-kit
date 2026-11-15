@@ -73,6 +73,12 @@ with `.replace(",",".")` but never wrote it up, so Aro re-hit a bug the fleet al
   collapses its auto rows to about 0 and stacks every item on one spot. Set `grid-auto-rows: max-content` (Shelf).
 - **An unlayered global rule beats Tailwind 4 utilities**, which live in `@layer`: `h1, h2, h3 { font-family: serif }`
   makes `font-sans` on an h2 do nothing. Put global base rules inside `@layer base` (Shelf).
+- **The reverse case: an outer unlayered colour beats Tailwind 4's layered body colour.** Tailwind 4 puts the
+  body colour in `@layer base`, so any unlayered rule around the page wins. On an Artifact (the viewer adds
+  one), headings and paragraphs without their own colour class showed black text on a dark theme. Set
+  `html, body { background; color }` in an unlayered rule. Tailwind 4 borders also default to the text colour,
+  so a theme swap needs `border-color: var(--border)` in the base layer. A headless check of visibility missed
+  it; check the computed colour.
 - **Tailwind v3 emits no rule for `bg-primary/10`** when the colour is a bare `var(--primary)`. Define a space-separated
   `--primary-rgb` and set the colour to `rgb(var(--primary-rgb) / <alpha-value>)`; find it by grepping the compiled CSS
   for the rule (personal-dash).

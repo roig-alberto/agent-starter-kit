@@ -97,3 +97,25 @@ confirmed the feel on the phone.
 - **A headless sampler must not block the tap.** With Playwright, an `evaluate_handle` sampler followed
   by a later `tap()` queues the tap behind the sampling promise; start sampling from an in-page
   `pointerdown` listener instead.
+
+## Port check: compare a port to a recording (lumo, 2026-10)
+
+One recipe for checking a port of a motion against a recording of the original.
+
+- **Measure the column or row profile, not only curves.** A port matched the recording on every curve (front
+  position, height, tint mean) and still lacked the wave. The front metric cannot see a band's shape. Measure
+  the colour per 25 CSS px column, recording against port, per frame, and look at contrast-boosted frame sheets
+  before reporting a match.
+- **Compare by measured curves with a best time shift, not by SSIM.** Pixel SSIM stays near 0.6 to 0.77
+  because of compression and font rendering. Measure the same curves on both sides inside the card, align in
+  time on one clear event, align in space on the card's corner, and fit a time shift per curve. A panel
+  background inside the card's colour range broke the height measure until the port's panel matched the
+  recording's page.
+- **When the original runs in a browser, compare frame by frame.** Use a fake clock (Playwright's keeps
+  flowing until `clock.pause_at`), pause every CSS and Web Animation and step it by hand (set `currentTime = 0`
+  the first time one is seen, or page-load time leaks in), step 16 ms (the fake animation tick, so GSAP and
+  other rAF motion is sampled when it updates), and wait a real 30 ms before and after each step (React's
+  scheduler and ResizeObserver run outside the fake clock). Use one fixed crop anchored on a box the motion
+  does not move, and nudge the port onto whole pixels. The toast pilot went from SSIM 0.88 to a minimum of
+  0.9963 in 8 rounds; 5 of the 8 fixes were in the recorder, not the port.
+- **Reference code:** `~/projects/lumo/e2e/compare/record.py` (recorder), `compare.py`, `curves.py`.

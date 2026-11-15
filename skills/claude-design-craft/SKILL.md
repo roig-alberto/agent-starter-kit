@@ -17,6 +17,10 @@ copies of the claude.ai Design references, which are Anthropic text for private 
    the piece needs it, read `references/diagrams.md` (flowchart, org chart, system map; read it FIRST),
    `references/print.md` (poster, flyer, PDF document; read it FIRST), or `references/questions.md` (how
    many questions to ask before building). Done when: a line in the reply names the references you read.
+   Use the canvas files and the frame format as they are. A guide condensed from our own skills lost 6 of 6
+   blind picks to the claude.ai canvas, even with `craft.md` copied word for word. The same instructions plus
+   the frame format (inline styles on every element, flex and gap) written by a bare agent matched it on 2 of
+   3 briefs (lumo phase 0, `~/projects/lumo/ui/phase0/`).
 2. **Translate claude.ai-only mentions as you read.** The references assume the claude.ai editor, so map
    them and never follow them literally:
    - `.dc.html`, `<x-dc>`, `<helmet>`, `DCLogic`, `{{holes}}`, `data-props`, tweaks, the properties panel,

@@ -85,6 +85,13 @@ a vendor's benchmark, and rejecting one on a hand-rolled n=1. The instrument is 
   work even for a claude run.
 - **Several `claude -p` runs at once crash the box.** Heavy multi-run matrices OOM this box; run one arm
   at a time.
+- **A tool allowlist can become what the eval measures.** In the dirty-tree eval, 4 of 9 hard-case runs scored
+  FAIL because `Bash(git *)` style rules denied the safe path (a temporary `GIT_INDEX_FILE`, patches in `/tmp`)
+  while the agent behaved correctly. Read `permission_denials` in the result line before scoring a run.
+- **`opencode run` loads the user's skills and AGENTS.md on its own.** Isolate it with
+  `HOME=<empty dir> XDG_CONFIG_HOME=<empty dir>/.config XDG_DATA_HOME=~/.local/share XDG_CACHE_HOME=~/.cache`
+  (measured: keeps the login, shows no user skills). The claude counterpart is
+  `claude -p --setting-sources project`.
 - **Prove a setting by its effect, not by its presence in a config file:** run one headless `claude -p --model haiku` and check that `modelUsage` shows the expected model. A plugin env setting was documented as live for five weeks while its hook patched the wrong folder.
 
 ## References

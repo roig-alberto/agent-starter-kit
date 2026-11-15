@@ -170,3 +170,11 @@ The outside skill stops and asks the user to confirm the test points before any 
 decided that this only holds in interactive sessions. In an unattended Agent Factory run nobody is there
 to answer, so the plan step writes the test points into the plan and the implementing agent follows that
 list without stopping to ask.
+
+## Test a guard both ways (2026-11-09)
+
+A reel (Aiden Johnston, day 105) described a database guard that blocked test bots: its only test checked the bot was
+blocked, and for 40 minutes it refused every real user's swipe while every check stayed green. The same shape hit
+here: factory permission rules were tested on what they refuse, and builds were refused a plain `grep` (FACTORY-102).
+The rule now asks for the allowed-case test plus one `mutate.sh` run. The fixture-anonymizing line was removed from
+SKILL.md in the same change because RULES.md already says it (personal data never enters a repo).

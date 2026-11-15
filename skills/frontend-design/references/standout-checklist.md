@@ -33,7 +33,7 @@ values for every motion below are in the `animate` playbook, section "Patterns f
   - Switching tabs slides the new screen in from the side of the tab you tapped, with the slight bounce above (as
     he describes it in the talk; too fast to read at the frame rate checked).
 - **Does a control turn into its next step instead of opening something new?** The user's reference
-  (`ui-examples/ui-examples5.png`, recorded 2026-10-21): tapping the microphone in the chat input makes a black pill
+  (a screen recording, described 2026-10-21; the image itself was retired 2026-11-10): tapping the microphone in the chat input makes a black pill
   grow out of the microphone until it fills the input, showing a cancel cross, a sound line, "Listening..." and a
   tick; confirming or cancelling shrinks it back into the microphone. The send icon also turns into a tick.
 - **Does the idle screen breathe?** In the same reference, the empty assistant screen shows the mascot with small
@@ -101,4 +101,4 @@ values for every motion below are in the `animate` playbook, section "Patterns f
 
 He studies Mobbin (paid screenshot library), 60fps and Spotted in Prod (motion from top apps), and screen-records an
 app he likes, then slows the recording down to see the motion. The agent cannot log into these sites; the user's
-screenshots and recordings go in through the taste library (part 2) or `animate` (copy motion from a recording).
+screenshots and recordings go in only when the user asks for them in a session, or through `animate` (copy motion from a recording).

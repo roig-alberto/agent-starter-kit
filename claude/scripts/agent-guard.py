@@ -2,7 +2,8 @@
 """Pre-command guard for every agent's shell tool (Claude Code, Codex, OpenCode).
 
 Blocks the shell mistakes git hooks cannot see: a bare sudo (the rtk hook breaks it
-silently), `git add -A` in an app repo, destructive git, and skipping the git hooks.
+silently), `git add -A` in an app repo, destructive git, skipping the git hooks, a test or
+typecheck chained to a commit, push or deploy without `&&`, and `>` onto a tracked app-repo file.
 
 Input: a PreToolUse JSON payload on stdin (Claude Code and Codex: .tool_input.command,
 .cwd), or `--command <cmd> [--cwd <dir>]` (the OpenCode plugin).
@@ -162,8 +163,117 @@ def check_git(args, where, added=(), temp_index=False):
     return None
 
 
+CHECK_TOOLS = {"vitest", "jest", "pytest", "tsc", "eslint", "mypy", "ruff", "unittest"}
+CHECK_SCRIPTS = ("test", "typecheck", "lint", "check", "verify", "build")
+
+
+def strip_runner(c):
+    """Drop rtk / rtk proxy, npx, uv run, pnpm exec and `python -m` so the real tool is c[0]."""
+    while c:
+        if c[0] == "rtk":
+            c = c[2:] if c[1:2] == ["proxy"] else c[1:]
+        elif c[0] in ("npx", "bunx", "pnpx"):
+            c = [a for a in c[1:] if not a.startswith("-")]
+        elif c[:2] in (["uv", "run"], ["pnpm", "exec"]):
+            c = c[2:]
+        elif os.path.basename(c[0]).startswith("python") and c[1:2] == ["-m"]:
+            c = c[2:]
+        else:
+            return c
+    return c
+
+
+def is_check(c):
+    c = strip_runner(c)
+    if not c:
+        return False
+    w = os.path.basename(c[0])
+    if w in CHECK_TOOLS:
+        return True
+    if w in ("npm", "pnpm", "yarn", "bun"):
+        script = c[2] if c[1:2] in (["run"], ["run-script"]) and len(c) > 2 else (c[1] if len(c) > 1 else "")
+        return script.split(":")[0] in CHECK_SCRIPTS
+    if w in ("go", "cargo"):
+        return c[1:2] == ["test"]
+    return w == "make" and any(a in CHECK_SCRIPTS for a in c[1:])
+
+
+def is_ship(c):
+    """A commit, a push or a deploy: the step a red check must not reach."""
+    c = strip_runner(c)
+    if not c:
+        return False
+    w = os.path.basename(c[0])
+    if w == "git":
+        return [a for a in c[1:] if not a.startswith("-")][:1] in (["commit"], ["push"])
+    return "deploy" in w or (w in ("npm", "pnpm", "yarn", "bun", "make") and any("deploy" in a for a in c[1:3]))
+
+
+def check_chain(cmd):
+    """2026-11-10 (HARVEST 2026-10-20, 2026-10-25): `vitest; tsc; git commit` committed a red test, and a `;` chain
+    took failing checks to a prod deploy. A check must gate the ship step with `&&`; a piped check needs pipefail."""
+    steps, cur = [], []
+    for t in tokens(cmd) + ["\n"]:
+        if t in SEPARATORS:
+            if cur:
+                steps.append((cur, t))
+            cur = []
+        elif t:
+            cur.append(t)
+    pipefail = False
+    for i, (c, _) in enumerate(steps):
+        if c[0] == "set" and "pipefail" in c:
+            pipefail = True
+        if not is_check(c):
+            continue
+        for j in range(i + 1, len(steps)):
+            if not is_ship(steps[j][0]):
+                continue
+            seps = [s for _, s in steps[i:j]]
+            if any(s in (";", "\n", "&", "||", ";;") for s in seps) or (not pipefail and seps[0] in ("|", "|&")):
+                return (f"`{' '.join(steps[j][0][:3])}` would run even when `{' '.join(c[:3])}` fails (a `;`, newline, "
+                        "`||` or pipe sits between them). Gate it: <check> && <commit or deploy>, and add "
+                        "`set -o pipefail` before piping a check.")
+    return None
+
+
+def redirect_targets(c):
+    """Files a simple command truncates with `>` (not `>>`, not a `2>&1`-style fd copy)."""
+    out = []
+    for k, a in enumerate(c):
+        op, _, rest = a.partition(">")
+        if not _ or op not in ("", "1") or rest.startswith((">", "&", "|")):
+            continue
+        target = rest or (c[k + 1] if k + 1 < len(c) else "")
+        if target and not target.startswith("/dev/"):
+            out.append(target)
+    return out
+
+
+def tracked(path):
+    top = toplevel(os.path.dirname(path) or ".")
+    if top is None or top in knowledge_repos() or not os.path.isfile(path):
+        return False
+    r = subprocess.run(["git", "-C", top, "ls-files", "--error-unmatch", path], capture_output=True, timeout=5)
+    return r.returncode == 0
+
+
 def check(cmd, cwd):
+    reason = check_chain(cmd)
+    if reason:
+        return reason
     where = cwd or os.getcwd()
+    # 2026-11-10 (HARVEST 2026-10-20): `cat > file` overwrote a file another session had committed. In an app repo a
+    # tracked file is changed with the edit tool, which refuses to overwrite what it has not read.
+    w = where
+    for c in commands(cmd):
+        if c[0] == "cd" and len(c) > 1:
+            w = os.path.join(w, os.path.expanduser(c[1]))
+        for t in redirect_targets(c):
+            p = os.path.join(w, os.path.expanduser(t))
+            if tracked(p):
+                return (f"`> {t}` truncates a tracked file in an app repo, possibly another session's work. "
+                        "Change it with the edit tool, or append with >>.")
     added = []  # paths this command line stages itself, so its own commit is not blocked
     exported = False  # `export GIT_INDEX_FILE=<tmp>` earlier on this line
     env = []

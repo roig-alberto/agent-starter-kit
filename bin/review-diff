@@ -12,7 +12,8 @@
 #   review-diff --repo /path/to/worktree
 #   review-diff --context docs/plans/X.md --context CLAUDE.md   # what was asked + repo rules
 # Env: REVIEW_MODEL (default sonnet), REVIEW_EFFORT (default medium), REVIEW_MAX_CHARS (default 400000),
-#      REVIEW_EXTRA (text added to the instructions: how the reviewer eval tries a prompt change before it ships).
+#      REVIEW_EXTRA (text added to the instructions: how the reviewer eval tries a prompt change before it ships),
+#      REVIEW_KEEP_DIR (default ~/.local/state/review-diff: every review is saved there; stderr names the file).
 # The repo's REVIEW.md files (root, plus one in any folder above a changed file) are added as review instructions,
 # read from the committed copy (--base, else HEAD), never from the change under review: a change cannot soften its
 # own review (Claude Code Code Review does the same).
@@ -100,5 +101,10 @@ out=$(printf '%s' "$prompt" | claude -p --model "$model" ${effort:+--effort "$ef
   --tools "" --setting-sources "" --strict-mcp-config --mcp-config '{"mcpServers":{}}' \
   --output-format json 2>/dev/null) || { echo "review-diff: claude call failed" >&2; exit 1; }
 
-printf '%s\n' "$out" | jq -r '.result'
-printf '%s\n' "$out" | jq -r '"[review-diff: \(.num_turns) turn(s), ctx \((.usage.cache_read_input_tokens//0)+(.usage.cache_creation_input_tokens//0)+.usage.input_tokens) tok, out \(.usage.output_tokens) tok, model '"$model"']"' >&2
+# Every review is also kept on disk: a caller piping into `tail` lost the top findings three
+# times (HARVEST 2026-10-22, 2026-10-26), and each rerun cost about 20k tokens.
+keep_dir=${REVIEW_KEEP_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/review-diff}
+mkdir -p "$keep_dir"
+kept="$keep_dir/$(basename "$(git rev-parse --show-toplevel)")-$(date +%Y%m%d-%H%M%S)-$$.md"
+printf '%s\n' "$out" | jq -r '.result' | tee "$kept"
+printf '%s\n' "$out" | jq -r '"[review-diff: \(.num_turns) turn(s), ctx \((.usage.cache_read_input_tokens//0)+(.usage.cache_creation_input_tokens//0)+.usage.input_tokens) tok, out \(.usage.output_tokens) tok, model '"$model"', kept '"$kept"']"' >&2

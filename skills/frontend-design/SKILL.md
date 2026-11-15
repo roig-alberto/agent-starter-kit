@@ -1,9 +1,8 @@
 ---
 name: frontend-design
 description: >-
-  The in-house design method plus the user's taste library: distinctive visual direction (typography,
-  palette, layout, copy, dark theme), the user's liked-UI reference images, and the fidelity rule for every
-  design hand-off. Use WHENEVER designing a new visual surface, picking a visual direction, adding a dark
+  The in-house design method: distinctive visual direction (typography, palette, layout, copy, dark
+  theme) and the fidelity rule for every design hand-off. Use WHENEVER designing a new visual surface, picking a visual direction, adding a dark
   theme, writing a DESIGN_BRIEF or DESIGN_TOKENS, assembling a design hand-off for the Claude Design Agent,
   or running the design step of `new-app`. Trigger on "make it look good", 'what look do I want',
   'design the UI', 'hand this to the design agent', 'pick a visual direction', 'wireframes for a hand-off',
@@ -12,12 +11,11 @@ description: >-
 license: Complete terms in LICENSE.txt
 ---
 
-# frontend-design - the design method and the taste library
+# frontend-design - the design method and the hand-off rule
 
 This skill has two parts. Part 1 is the in-house design method: approach each brief as the design lead at
 a small studio known for giving every client an identity that could not be mistaken for anyone else's.
-Part 2 is the taste library: screens the user flagged as "I like this", plus the standing fidelity rule for
-every design hand-off. Together they prevent templated output (the same palette, type, and layout
+Part 2 is the standing fidelity rule for every design hand-off. Together they prevent templated output (the same palette, type, and layout
 regardless of subject), a visual direction re-litigated from zero on each project, and the theme bugs that
 screenshot reviews miss.
 
@@ -28,23 +26,16 @@ screenshot reviews miss.
    brief to the **Claude Design Agent** (external) or do it in-house here. The fork itself is defined in
    `one-shot` (existing app) and the design step of `new-app` (new app); skip the ask only when it was
    answered upstream. Done when: the user has picked external or in-house.
-2. **Read the taste library before writing a DESIGN_BRIEF or choosing a visual direction.** Open the images
-   in `references/ui-examples/`, read `references/ui-examples.md`, and factor the recurring aesthetic into
-   the brief or `DESIGN_TOKENS.md`, because the examples are the user's actual taste signal. Done when: the
-   brief names what it takes from the examples, or says why this project departs from them.
+2. **Do not use liked-UI example images as taste input.** The user retired them on 2026-11-10: ground the
+   direction in the subject, the app's own `DESIGN_BRIEF.md` and `DESIGN_TOKENS.md`, and references the user
+   asks for in this session. Done when: the brief cites none of the retired examples.
 3. **External path: assemble the design hand-off bundle** (the `input-<feature>-<project>/` folder in the
-   inbox folder, path and shape in ENVIRONMENT.md). **Copy `references/ui-examples/*` into the bundle** and reference
-   them in `PROMPT.md` as "reference UI the user likes - match this energy, not pixel-for-pixel." Paste the
-   fidelity wording from part 2 into `PROMPT.md`. This step is what "remind me to give it to the design
-   agent" means. Done when: the bundle folder lists the example images and `PROMPT.md` holds the fidelity
-   paragraph.
+   inbox folder, path and shape in ENVIRONMENT.md). Paste the fidelity wording from part 2 into `PROMPT.md`.
+   This step is what "remind me to give it to the design agent" means. Done when: `PROMPT.md` holds the
+   fidelity paragraph.
 4. **In-house path: run the part 1 method** below, deliver hi-fi static wireframes per part 2, then walk
    `references/standout-checklist.md` (part 3; on the external path, paste it into `PROMPT.md`). Done when:
    part 1 step 5 is done and every checklist question has an answer in the design or a reason it does not apply.
-5. **When the user drops new "I like this" screens** (usually via the inbox folder), move them into
-   `references/ui-examples/`, add a row to the table in `references/ui-examples.md` with a one-line concrete
-   description (surface, accent, type, motif), and refresh the recurring-aesthetic paragraph if the taste
-   signal shifts. Done when: every image in the folder has a row in the table.
 
 ## Part 1: the design method
 
@@ -92,7 +83,7 @@ screenshot reviews miss.
 5. **Critique again with screenshots**, then remove one accessory. Done when: the screens are built and one
    line names the signature element and the risk taken.
 
-## Part 2: the taste library and the hand-off rule
+## Part 2: the hand-off rule
 
 - **Fidelity: hi-fi STATIC wireframes, never an interactive prototype.** This is a standing user
   preference. Every request to a design agent, and every in-house design pass, must say this in the
@@ -106,10 +97,6 @@ screenshot reviews miss.
 
   Ask for each state in light and dark. The user reviews design as frames side by side, and a clickable
   prototype hides states behind interactions, so they go unreviewed and unbuilt.
-- **Treat the examples as taste signal, not a pixel spec.** Copying them literally makes every app look
-  the same.
-- **Do not hard-lock a new app to this palette unless the user says so.** It is the default gravity,
-  overridable per project (for example an app that must NOT look like the others).
 - **Propose accents as a comparison board.** Offer 3 accent variants on the same screen with a one-line
   rationale each, because that is how the user picks.
 
@@ -138,16 +125,11 @@ screenshot reviews miss.
   `verify-ui-live`, which owns DOM measurement.
 - **An accent close to green or red gets rejected.** Green (done) and red (destructive) are already spoken
   for, so check the semantic clash before proposing a colour.
-- **A flat accent fill reads dead.** In this taste the accent always carries a soft halo or glow on the
-  CTA, active chip, pill, and slider thumb.
 
 ## References
 
 - `references/design-method.md`: part 1 in full (posture, design principles, two-pass process, restraint,
   copywriting). Read it at the start of any new visual direction.
-- `references/ui-examples.md`: part 2, what each image shows, the recurring aesthetic, and the
-  accent-system refinements. Read it before any brief or hand-off.
-- `references/ui-examples/`: the liked-UI images themselves; copy them into every design hand-off bundle.
 - `references/standout-checklist.md`: part 3, what makes an app stand out (motion, mascot, icons, starter chips,
   widgets, store screenshots), from a designer's talk. Walk it before a design is called done.
 - `references/history.md`: the closet incidents behind the selector, dark-theme, and false-green rules, and

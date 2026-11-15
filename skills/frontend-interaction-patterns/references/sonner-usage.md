@@ -30,6 +30,9 @@ import { toast } from 'sonner';   // anywhere client-side
   `toast.success(…, { id })` changes the type. Persist with `{ duration: Infinity }`, dismiss with
   `toast.dismiss(id)` or `toast.dismiss()`, and read active toasts with `useSonner()` or
   `toast.getActiveToasts()`.
+- **Give a toast shown from inside another toast's action its own `id`.** Sonner dismisses the tapped toast
+  after its `onClick`, and with the same `id` that dismiss also takes the new toast. A "close History first"
+  guard called from a Redo action showed nothing until it got its own `id`.
 - **Climb the styling ladder only as far as the change needs** (below). Jumping straight to headless is
   fine and is the recommended end state for a design-system toast; lingering in the middle, marking many
   classes important, is not.

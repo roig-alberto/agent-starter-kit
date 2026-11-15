@@ -89,6 +89,17 @@ Every acceptance line gets an `AC-n` ID, in the checklist or the table. Verify a
 proof (Pass, Fail or Unverified), so a check that went missing shows. Never renumber or reuse an ID, and never reword a
 check to match the code: a changed check is a changed spec, which the user approves.
 
+## Name each oracle and each state rule in the first draft
+
+For every test the plan names, say where its expected value comes from (the oracle): the spec, a worked
+example, a known-good literal, or an independent pure function with its inputs. Never the code under test, and
+never a setup that cannot reach the state it checks. For every state with more than one plausible model (an
+"In progress" row as an extra item or a relabel, "newest" as a sentinel or a sequence number, a count with no
+unit), write the rule as a named pure function with its inputs and its result.
+
+Why: two lumo plans needed 21 review passes (12 and 9) before Approve, and almost every must-fix item was one
+of these two classes (2026-10-23). Naming them up front would have cut most of the passes.
+
 ## The two-reader check
 
 Read each phase twice before showing the plan.

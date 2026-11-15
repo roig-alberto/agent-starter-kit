@@ -40,5 +40,10 @@ is in `isolated-db-recipes.md`.
   browser-driving it is in `verify-ui-live` step 0b. Fleet specifics to plug in: db user/name = the app's (`caudal`, etc.),
   login reuses `~/.config/ui-check/<host:port>.pw`, and Next makes an env `DATABASE_URL` win over `.env`.
 
+- **A secret-shaped fixture trips the commit hook.** A test with a curl call carrying a hard-coded bearer
+  authorization header was refused by gitleaks (rule `curl-auth-header`) and stopped a commit-and-deploy
+  chain (agent-factory, 2026-10-24). Use a fixture that the code's own masking still exercises but gitleaks
+  does not match, such as `echo Bearer abcdefghijklmnop`. Never weaken the hook.
+
 - **Fixtures are anonymized only.** Real bank exports are gitignored by pattern in Caudal (`*.real.csv`
   etc.); never commit real personal data as a fixture.

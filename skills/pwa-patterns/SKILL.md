@@ -81,6 +81,10 @@ or missing notifications on iOS.
 - **The launch splash cannot be screenshotted.** A warm dev container hydrates before Playwright's
   navigate resolves; assert the splash is in the SSR HTML instead (`references/launch-splash.md`).
 - **An iOS PWA's EventSource (SSE) dies while the phone is locked or backgrounded** and may not come back. Close and reopen it on `visibilitychange` to visible, and have the server send a hello event that makes screens refetch.
+- **Re-subscribing to push on every app open undoes "stop notifications".** Once the old subscription is gone,
+  `pushManager.subscribe()` makes a new one, so "stop on this device" came back on the next open (agent-factory,
+  found by reading). The server keeps the stopped device labels and ignores the automatic re-send (`auto: true`)
+  until a tap on Allow on that device (agent-factory `docs/UI-PLAYBOOK.md`, D209).
 
 ## References
 

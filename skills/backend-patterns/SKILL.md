@@ -68,6 +68,10 @@ nothing, a rename that silently kills a consumer, and a deploy that runs new DB 
   never a bare `setHours`, which resolves against the host tz.
 - **Postgres major is pinned to the dumps.** See `references/drizzle.md` for the current pin.
 
+- **Undo over append-only history and read-only prod scripts have recipes.** Undo walks content, not time, and
+  jsonb reorders keys; a script that must only read enforces `default_transaction_read_only=on` in the
+  connection URL (`references/undo-and-readonly.md`).
+
 ## Rules: auth, outbound calls, jobs, LLMs
 
 - **Single-user auth is argon2 plus an HMAC cookie, and it is the gate on the tailnet.** Never import the argon2
@@ -144,3 +148,4 @@ nothing, a rename that silently kills a consumer, and a deploy that runs new DB 
 - `references/ripple-check.md`: the full incidents behind the ripple-check rules.
 - `references/legacy-closet.md`: closet's legacy stack and its shared-volume trap.
 - `references/history.md`: incidents and measurements not told in a topic file.
+- `references/undo-and-readonly.md`: undo over append-only history, and enforcing read-only prod scripts.

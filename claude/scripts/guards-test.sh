@@ -68,6 +68,27 @@ guard pass  "git commit -am x" ~/.claude
 guard block "git add -f .env" "$app"
 guard block "git add --force dist/x.js" ~/.claude
 guard pass  "git add src/f.ts" "$app"
+# A check must gate the commit, push or deploy with && (HARVEST 2026-10-20, 2026-10-25)
+guard block "npx vitest run; npm run typecheck; git commit -m x -- a.ts" "$app"
+guard pass  "npx vitest run && npm run typecheck && git commit -m x -- a.ts" "$app"
+guard block "npm test || true; npm run deploy"
+guard block "rtk proxy npx vitest run | tail -5 && git commit -m x -- a.ts" "$app"
+guard pass  "set -o pipefail; npx vitest run | tail -5 && git commit -m x -- a.ts" "$app"
+guard block "npm run lint
+git push"
+guard block "python3 -m pytest & git push"
+guard pass  "git status; git commit -m x -- a.ts" "$app"
+guard pass  "npm test; echo done"
+guard pass  "git commit -m 'run npm test; then deploy' -- a.ts" "$app"
+# `>` onto a tracked file in an app repo (HARVEST 2026-10-20)
+echo x > "$app/t.md"; git -C "$app" add t.md; git -C "$app" -c user.name=t -c user.email=t@t commit -qm t -- t.md
+guard block "cat > t.md <<'EOF'" "$app"
+guard block "echo y >t.md" "$app"
+guard block "cd $app && echo y 1> t.md"
+guard pass  "echo y >> t.md" "$app"
+guard pass  "echo y > new.md" "$app"
+guard pass  "cmd 2>&1 > /dev/null" "$app"
+guard pass  "echo y > RULES.md" ~/.claude
 printf 'not json' | python3 "$G" && ok "guard fails open on a bad payload" || bad "guard fails open on a bad payload"
 
 # git hooks in a throwaway repo

@@ -131,6 +131,12 @@ Setting the pipeline up in a new project (a hot-reload dev container with `./:/a
 - **"Changes aren't deploying".** A caching service worker; keep it no-cache in dev, and re-add an
   installed PWA once after the fix.
 - **A Next build-error overlay answers `http=200`.** Look at the PNG, not only the status.
+- **`ui-check --js` fails with "Execution context was destroyed" after a tap that navigates.** Prove the tap
+  by reading the state after it (the API, or a fresh load of the next page).
+- **Headless WebKit times a transition slow and reads 0 WebGL pixels.** Assert the computed value and the
+  arrival, and count pixels in a screenshot (`references/gotchas-and-perf.md`, "Probes that lie").
+- **"does not provide an export named X" right after a script rewrote a whole file.** Vite raced the write;
+  `touch` the file before debugging the code.
 
 ## References
 

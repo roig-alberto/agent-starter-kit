@@ -218,6 +218,18 @@ cut the longest (measured: 2 of 5 cut at 6 rows). The fix: a ref callback that s
 2px`, plus the same on `onInput`, because a stable ref callback runs only when the box mounts. Measured at 390 px: 5 of
 5 fit (`scrollHeight <= clientHeight + 1`).
 
+**A popover that can outgrow the screen gets the available-height cap and its own scroll** (FACTORY-107, Triage 93,
+2026-11-09): the Board row menu has a Stage group that expands, and on a 390 x 844 phone the last row's menu ran past the
+bottom, so Delete task could not be reached. Put `max-h-(--radix-popover-content-available-height) overflow-y-auto
+overscroll-contain` on the `Popover.Content`. Radix sets that variable from the room left after `collisionPadding`, so the
+menu stops at the screen edge and scrolls inside itself. Keep `side` and `align`; do not collapse groups to make it fit.
+Proof: `scripts/proofs/row-menu-fits.py`.
+
+**A badge that raises a question needs its answer in reach** (FACTORY-121, 2026-11-10): the "likely stale" pill sat at the
+top while its Check again row sat at y = 893 on an 844 px screen, under the floating action bar. Check again now lives in
+the floating bar next to Decline, Snooze and Accept (only on a stale open or snoozed item; 14 px label, `px-1`, so four
+buttons fit 390 px). The pill stays a plain label.
+
 ---
 
 ## 5. iPhone (installed PWA) fixes: what bit, the measured cause, the fix
@@ -328,3 +340,9 @@ How it hid (keep these, each cost a round):
       `~/.agents/skills/frontend-interaction-patterns/references/phone-defaults.md` (added 2026-10-26).
 - [ ] Feel-check on the real iPhone: play suspicious motion at slow speed in Safari's Web Inspector, look again the
       next day.
+- UI climb fix 4: dock (task, components_and_states): The floating Start/+/chat dock sits directly on top of the Build pipeline step with no gradient or scrim. The step's description text shows between and behind the buttons, which looks broken.
+- UI climb fix 7: dock (triage, iconography): The badge count on the swap icon is a loose superscript '4' instead of a pill badge matching the inbox badge. The '⋮' plus chevron combination is an ambiguous control with no clear meaning.
+- UI climb fix 8: dock (settings, components_and_states): The floating dock sits on top of the Task templates row and cuts its subtitle mid-line. There is no scrim, fade or bottom content inset, so the overlap looks broken.
+- UI climb fix 9: settings row (settings, spacing_and_density): Subtitles like 'Who does the work. Reconnect a login here.' wrap to two lines and run into the right-aligned values. Rows feel cramped and uneven; shorten the copy or give the text column more width.
+- UI climb fix 10: dock (board, spacing_and_density): The floating dock sits on top of the Backlog rows. Task titles show half-hidden behind it with no gradient fade or bottom padding, so the screen looks clipped and messy.
+- UI climb fix 13: item row (triage, components_and_states): Rows below the focused card are bare indented text with no leading status or source icon and no card or divider. They look unfinished next to the raised first card and give the eye no left anchor, unlike Linear's icon-led rows.
